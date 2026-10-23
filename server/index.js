@@ -26,11 +26,11 @@ app.use(
         return callback(null, true);
       }
 
-      // Allow this project's Vercel deployment URLs.
-      const isEventHubVercelDeployment =
+      // Allow preview deployments matching this EventHub project.
+      const isEventHubPreview =
         /^https:\/\/eventhub-[a-z0-9-]+-shlok-e58f\.vercel\.app$/.test(origin);
 
-      if (isEventHubVercelDeployment) {
+      if (isEventHubPreview) {
         return callback(null, true);
       }
 
@@ -83,6 +83,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/bookings', bookingRoutes);
 
+// Start the server locally; export the app for Vercel.
 if (require.main === module) {
   const PORT = process.env.PORT || 5000;
 
