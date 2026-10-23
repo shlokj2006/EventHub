@@ -14,19 +14,22 @@ const app = express();
 
 const allowedOrigins = [
   'http://localhost:5173',
+  'https://eventhub-one-phi.vercel.app',
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
 
-    return callback(new Error(`Not allowed by CORS: ${origin}`));
-  },
-  credentials: true,
-}));
+      return callback(new Error(`Not allowed by CORS: ${origin}`));
+    },
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 
@@ -38,7 +41,8 @@ async function connectDB() {
   }
 
   if (!connectionPromise) {
-    connectionPromise = mongoose.connect(process.env.MONGODB_URI)
+    connectionPromise = mongoose
+      .connect(process.env.MONGODB_URI)
       .catch((error) => {
         connectionPromise = null;
         throw error;
