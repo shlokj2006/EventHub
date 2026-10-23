@@ -15,14 +15,22 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:5173',
   'https://eventhub-one-phi.vercel.app',
-  'https://eventhub-mc16s994w-shlok-e58f.vercel.app',
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
 app.use(
   cors({
     origin: (origin, callback) => {
+      // Allow requests without an Origin header.
       if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Allow this project's Vercel deployment URLs.
+      const isEventHubVercelDeployment =
+        /^https:\/\/eventhub-[a-z0-9-]+-shlok-e58f\.vercel\.app$/.test(origin);
+
+      if (isEventHubVercelDeployment) {
         return callback(null, true);
       }
 
