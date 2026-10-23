@@ -15,6 +15,7 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:5173',
   'https://eventhub-one-phi.vercel.app',
+  'https://eventhub-mc16s994w-shlok-e58f.vercel.app',
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
