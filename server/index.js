@@ -23,8 +23,9 @@ app.use(cors({
       return callback(null, true);
     }
 
-    return callback(new Error('Not allowed by CORS'));
+    return callback(new Error(`Not allowed by CORS: ${origin}`));
   },
+  credentials: true,
 }));
 
 app.use(express.json());
