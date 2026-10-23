@@ -1,33 +1,89 @@
+
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const mongoose = require('mongoose');
 
 dotenv.config();
+
 const authRoutes = require('./routes/auth');
 const eventRoutes = require('./routes/events');
 const bookingRoutes = require('./routes/booking');
 
 const app = express();
-app.use(cors());
+
+const allowedOrigins = [
+  'http://localhost:5173',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error('Not allowed by CORS'));
+  },
+}));
+
 app.use(express.json());
 
-//Routes
-app.use('/api/auth',authRoutes);
+let connectionPromise;
+
+async function connectDB() {
+  if (mongoose.connection.readyState === 1) {
+    return;
+  }
+
+  if (!connectionPromise) {
+    connectionPromise = mongoose.connect(process.env.MONGODB_URI)
+      .catch((error) => {
+        connectionPromise = null;
+        throw error;
+      });
+  }
+
+  await connectionPromise;
+}
+
+// Connect to MongoDB before handling API requests.
+app.use(async (req, res, next) => {
+  try {
+    if (!process.env.MONGODB_URI) {
+      throw new Error('MONGODB_URI is not configured');
+    }
+
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error('Database connection failed:', error.message);
+
+    res.status(503).json({
+      message: 'Service temporarily unavailable',
+    });
+  }
+});
+
+app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/bookings', bookingRoutes);
 
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
 
-//Connect to mongoose
-mongoose.connect(process.env.MONGODB_URI)
-.then(() => {
-    console.log('connected to mongo db');
-})
-.catch((error) =>{
-    console.error('error connecting to mongoDB',error);
-})
+  connectDB()
+    .then(() => {
+      console.log('Connected to MongoDB');
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, ()=>{
-    console.log(`Server is running on port ${PORT}`);
-});
+      app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+      });
+    })
+    .catch((error) => {
+      console.error('Failed to start server:', error.message);
+      process.exit(1);
+    });
+}
+
+module.exports = app;
