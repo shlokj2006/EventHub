@@ -11,21 +11,31 @@ const protect = async (req, res, next) => {
             if (!req.user) {
                 return res.status(401).json({ message: 'Not authorized, user not found' });
             }
-            next();
+            const currentVersion = req.user.tokenVersion || 0;
+            if ((decoded.tokenVersion !== undefined && decoded.tokenVersion !== currentVersion) || (currentVersion > 0 && decoded.tokenVersion === undefined)) {
+                return res.status(401).json({ message: 'Not authorized, token has been revoked' });
+            }
+            return next();
         } catch (error) {
-            res.status(401).json({ message: 'Not authorized, token failed' });
+            return res.status(401).json({ message: 'Not authorized, token failed' });
         }
-    } else {
-        res.status(401).json({ message: 'Not authorized, no token' });
     }
+    return res.status(401).json({ message: 'Not authorized, no token' });
+};
+
+const optionalProtect = (req, res, next) => {
+    if (!req.headers.authorization) return next();
+    return protect(req, res, next);
 };
 
 const admin = (req, res, next) => {
-    if (req.user && req.user.role === 'admin') {
-        next();
-    } else {
-        res.status(403).json({ message: 'Not authorized as an admin' });
-    }
+    if (req.user && req.user.role === 'admin') return next();
+    return res.status(403).json({ message: 'Not authorized as an admin' });
 };
 
-module.exports = { protect, admin };
+const eventStaff = (req, res, next) => {
+    if (req.user && req.user.role === 'event_staff') return next();
+    return res.status(403).json({ message: 'Not authorized as event staff' });
+};
+
+module.exports = { protect, optionalProtect, admin, eventStaff };

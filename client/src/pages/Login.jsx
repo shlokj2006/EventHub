@@ -1,6 +1,7 @@
-import React, { useState, useContext } from 'react';
+import { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { getLoginDestination } from '../utils/authNavigation';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -12,6 +13,11 @@ const Login = () => {
 
     const { login, verifyOTP } = useContext(AuthContext);
     const navigate = useNavigate();
+    const location = useLocation();
+
+    const finishLogin = (data) => {
+        navigate(getLoginDestination(data.role, location.state?.from?.pathname), { replace: true });
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -20,12 +26,10 @@ const Login = () => {
         try {
             if (!showOTP) {
                 const data = await login(email, password);
-                if (data.role === 'admin') navigate('/admin');
-                else navigate('/dashboard');
+                finishLogin(data);
             } else {
                 const data = await verifyOTP(email, otp);
-                if (data.role === 'admin') navigate('/admin');
-                else navigate('/dashboard');
+                finishLogin(data);
             }
         } catch (err) {
             if (err.needsVerification) {
@@ -98,6 +102,7 @@ const Login = () => {
             <p className="text-center mt-8 text-gray-600">
                 Don't have an account? <Link to="/register" className="text-gray-900 font-bold hover:underline">Sign up</Link>
             </p>
+            {!showOTP && <p className="text-center mt-3"><Link to="/forgot-password" className="text-gray-700 font-semibold hover:underline">Forgot password?</Link></p>}
         </div>
     );
 };

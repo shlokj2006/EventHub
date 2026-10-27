@@ -1,45 +1,57 @@
 # Architecture and Product Decisions
 
-Record meaningful project decisions here. Entries below are the initial
-decisions from the project plan.
+These decisions describe the current implementation and constraints. Use
+[`API_CONTRACT.md`](API_CONTRACT.md) and [`DATABASE_SCHEMA.md`](DATABASE_SCHEMA.md)
+as the current technical references.
 
-## D-001: Use the MERN stack
+## D-001: MERN architecture
 
-**Decision:** Use MongoDB, Express.js, React.js, and Node.js.
+**Decision:** React/Vite client, Node/Express API, MongoDB through Mongoose.
+**Reason:** A JavaScript full-stack implementation fits the project and its
+learning goals.
 
-**Reason:** The stack supports a JavaScript-based full-stack application
-and demonstrates practical web development skills.
+## D-002: General-purpose event booking
 
-## D-002: Keep the platform general-purpose
+**Decision:** EventHub is not limited to college events. Current roles are
+`user`, `event_staff`, and `admin`; admins manage events. **There is no
+organizer role in the schema or route guards.**
 
-**Decision:** EventHub is not limited to college events.
+## D-003: Server-side authorization and authoritative data
 
-**Reason:** A dedicated College Events module can be added later without
-restricting the main product.
+**Decision:** Server middleware and controllers enforce roles, ownership,
+event-staff assignment, price, capacity, ticket eligibility, and check-in.
+Frontend route guards are for navigation, not security.
 
-## D-003: Learn from a tutorial, then customize
+## D-004: Recoverable reservations without transaction assumptions
 
-**Decision:** Use the selected MERN event-booking tutorial as a learning
-foundation, not as the final submission unchanged.
+**Decision:** Seat changes and capacity claims are atomic within one Event
+document; booking and event writes are reconciled using persisted states.
+**Reason:** The repository does not establish that deployed MongoDB supports
+transactions. This is recoverable cross-document logic, not transaction-level
+atomicity.
 
-**Reason:** The project should demonstrate understanding and original
-customization.
+## D-005: Manual paid-booking approval
 
-## D-004: Build core features before advanced features
+**Decision:** Admins confirm pending paid bookings and select `paid` or
+`not_paid`. **This only records an admin choice; it is not gateway-verified.**
+Free bookings confirm automatically.
 
-**Decision:** Implement setup, authentication, event CRUD, and
-registration before QR attendance or other advanced additions.
+## D-006: Ticket and check-in integrity
 
-**Reason:** A reliable, understandable core application is the priority.
+**Decision:** One active ticket per attendee, secure opaque references, private
+PDF downloads, and server-side conditional check-in with staff assignment
+validation. No ticket event-date expiry window is invented.
 
-## D-005: Enforce business rules on the backend
+## D-007: Safe database transition
 
-**Decision:** Capacity, authorization, and duplicate-registration checks
-must be enforced server-side.
+**Decision:** The local development database is `eventhub_dev`. The production
+database name must be verified from actual deployment configuration and is not
+assumed here. A merge does not merge database records. Backups, a tested
+migration/reconciliation plan, duplicate checks, and explicit review are
+required before live changes; no destructive data operation is implicit.
 
-**Reason:** Frontend-only checks can be bypassed.
+## Deferred decisions
 
-## Future decisions
-
-For each new decision, record: date, context, options considered,
-decision, consequences, and status.
+A full-site UX redesign and real payment integration—including provider
+verification, webhooks, and reconciliation—are future-version work. Choose a
+provider and define security/idempotency requirements before implementation.

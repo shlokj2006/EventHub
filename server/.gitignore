@@ -4,9 +4,8 @@ node_modules/
 # Environment variables
 .env
 
-#Sample data 
+# The development seed is tracked and guarded against non-local databases.
 seed.js
-
 # Logs
 npm-debug.log*
 yarn-debug.log*

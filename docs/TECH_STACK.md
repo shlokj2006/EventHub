@@ -1,63 +1,31 @@
 # Technology Stack
 
-## Frontend
+The versions below come from `client/package.json` and `server/package.json`;
+lockfiles hold the exact resolved dependency graph. This documents current
+dependencies, not a requirement to upgrade them.
 
-  Technology                    Planned purpose
-  ----------------------------- ----------------------------------------
-  React.js                      Build reusable UI components and pages
-  React Router                  Navigate between pages
-  Axios                         Make HTTP requests to the backend API
-  CSS, Bootstrap, or Tailwind   Style the interface
+| Area | Current implementation |
+|---|---|
+| Runtime and API | Node.js, Express 5, CommonJS backend |
+| UI | React 19, React Router 7, Vite 8, Axios, Tailwind CSS 4 |
+| Persistence | MongoDB through Mongoose 9 |
+| Authentication | `jsonwebtoken` JWTs, `bcryptjs` password hashes, database-backed role and token-version checks |
+| Email | Nodemailer 10, legacy Gmail transport or optional custom SMTP; see `DEPLOYMENT.md` |
+| Ticket PDF and QR | PDFKit and `qrcode`; generated in memory by the server |
+| Browser QR scanner | `@zxing/browser`; scanning results are verified by the API |
+| Testing | Node.js built-in `node:test` for backend and client utility tests |
+| Development | npm scripts, Nodemon for server development, Vite proxy to `localhost:5000` |
 
-Choose one main styling approach for the project rather than adding
-multiple frameworks without a need.
+## Package scripts
 
-## Backend
+Root scripts include `npm run install:all`, `npm run dev`, separate
+`dev:client`/`dev:server`, `npm run build`, and `npm run lint`. The server
+provides `npm start`, `npm run dev`, and `npm test`. The client provides
+`npm run dev`, `npm run build`, `npm run lint`, and `npm run preview`; client
+tests are run with `node --test` from `client/` (there is no `test` npm
+script).
 
-  Technology   Planned purpose
-  ------------ -----------------------------------
-  Node.js      JavaScript runtime for the server
-  Express.js   HTTP server and REST API routing
-
-## Database and data modeling
-
-  Technology   Planned purpose
-  ------------ ----------------------------------------------------------
-  MongoDB      Store users, events, and registrations
-  Mongoose     Define schemas, validate data, and interact with MongoDB
-
-## Authentication and security
-
-  Technology   Planned purpose
-  ------------ ------------------------------------------
-  JWT          Represent an authenticated session/token
-  bcrypt       Hash passwords before storing them
-
-Authentication and authorization are different: authentication
-establishes who the user is; authorization checks what that user is
-allowed to do. Role checks must be enforced by the backend, not only by
-hiding frontend controls.
-
-## Development tools
-
--   VS Code
--   Git
--   GitHub
--   Node.js and npm
-
-## Possible deployment services
-
--   **Vercel:** frontend hosting
--   **Render:** backend hosting
--   **MongoDB Atlas:** hosted MongoDB database
-
-Free tiers and service limits can change. Check current provider limits
-before deployment; this document does not guarantee that all services
-will remain free.
-
-## Configuration and secrets
-
-Use environment variables for values such as the MongoDB connection
-string, JWT secret, and frontend/backend URLs. Do not commit `.env`
-files or real credentials to GitHub. Provide a safe `.env.example` with
-placeholder values instead.
+Deployment examples in `vercel.json` describe the configured multi-service
+routes and cron schedule; they do not establish that the project is deployed.
+See [`DEPLOYMENT.md`](DEPLOYMENT.md) for configuration and environment
+requirements.

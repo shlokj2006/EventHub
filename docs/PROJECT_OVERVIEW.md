@@ -1,87 +1,55 @@
-# EventHub --- Project Overview
+# EventHub Project Overview
 
-## Formal title
+## Current product
 
-**EventHub --- A MERN-Based Event Management and Registration Platform**
+EventHub is a MERN web application for discovering events and managing
+multi-attendee bookings. The current branch includes account verification,
+password recovery, event management, seat reservations, administrative paid-
+booking approval, ticket PDFs with QR codes, and Event Staff check-in.
 
-## Introduction
+The project is general-purpose. Its roles are `user`, `event_staff`, and
+`admin`; there is no separate organizer role. Admins currently create and
+manage events. Event Staff gain scoped access through explicit event
+assignments.
 
-EventHub is planned as a general-purpose platform for discovering events
-and managing event registrations. Attendees will be able to browse
-events, view event details, register, and manage their registrations.
-Organizers will be able to create and manage events, while
-administrators will oversee platform users, events, and registrations.
+## User journeys
 
-The project is intended for a B.Tech CSE college project while remaining
-useful beyond a college-only environment.
+- Visitors browse/search events, register using an emailed OTP, and verify the
+  account. Unverified accounts cannot obtain a login session.
+- A verified user requests a booking OTP and submits event, quantity, and
+  attendee details. The server calculates price and reserves capacity.
+- Free bookings confirm and receive attendee tickets immediately. Paid
+  bookings remain pending for up to 24 hours; an admin confirms them and
+  selects an admin-recorded `paid` or `not_paid` status.
+- A booking owner downloads their ticket PDF. Event Staff scan the QR code and
+  the server verifies and records check-in. Admins can access any event;
+  Event Staff are limited to current assignments.
 
-## Problem statement
+## Architecture and source of truth
 
-Event information and registration can be difficult to manage when event
-details, participant lists, and registration status are handled
-separately. EventHub aims to provide a centralized web application for
-event discovery, registration, and organizer-side event management.
+The React/Vite client calls the Express API. MongoDB persists users, events,
+bookings, assignments, reset records, OTPs, and tickets. The backend is the
+source of truth for access, price, capacity, booking status, ticket
+eligibility, and check-in. See [`ARCHITECTURE_AND_STRUCTURE.md`](ARCHITECTURE_AND_STRUCTURE.md),
+[`API_CONTRACT.md`](API_CONTRACT.md), and [`DATABASE_SCHEMA.md`](DATABASE_SCHEMA.md).
 
-This is the intended problem statement; it should be refined after the
-final implementation and requirements are confirmed.
+## Current limitations
 
-## Objectives
+- Admin approval records a payment status manually. There is no real online
+  gateway, gateway verification, webhook, or payment reconciliation.
+- A full-site UX redesign and consistency pass is deferred.
+- Reservation workflows are recoverable but not cross-document atomic; the
+  app does not rely on MongoDB transactions.
+- No event-date ticket validity window or automated ticket expiry is defined.
+- Email tests use a mocked transport. Provider acceptance and inbox delivery
+  require separate manual testing.
+- The repository does not verify deployed hosts, production environment
+  values, production database name, or actual database index state.
 
--   Build a full-stack web application using the MERN stack.
--   Support attendee, organizer, and admin roles.
--   Implement authentication and role-based authorization.
--   Provide event creation, viewing, updating, and deletion.
--   Allow users to register for events and review their registrations.
--   Support event search and filtering.
--   Enforce event registration capacity on the backend.
--   Provide dashboards relevant to organizers and administrators.
--   Deploy the completed application using suitable hosting services.
--   Keep the code understandable enough to explain during a project
-    viva.
+## Deferred next-version features
 
-## Target users
-
-### Attendee/User
-
-Can register and log in, browse and search events, filter results, view
-event details, register, view registrations, cancel where permitted,
-review event history, and manage a profile.
-
-### Event Organizer
-
-Can create, edit, and delete events; add event information and images;
-set date, time, location, maximum participants, and registration
-deadline; view registrations; manage participants; and view event
-statistics.
-
-### Admin
-
-Can view and manage users, view all events and registrations, manage
-organizers, remove inappropriate events, and view platform statistics.
-
-## Scope
-
-### Core scope
-
--   Authentication
--   Role-based authorization
--   Event CRUD
--   Event registration and cancellation rules
--   Registration list for users and organizers
--   Basic admin functionality
--   Search and filtering as a customization phase
-
-### Later enhancements
-
--   QR-based attendance
--   Email notifications and reminders
--   Analytics
--   Reviews and ratings
--   Event recommendations
--   Improved image uploads
--   A specialized College Events module
-
-## Project principle
-
-Build the basic application first, understand and test it, and then
-customize it. Do not treat every planned feature as completed.
+The next planned version may include a full-site UX redesign and real online
+payment integration. Payment verification, gateway webhooks, and reconciliation
+must be designed with the chosen provider. These are future work, not part of
+the current scope; the current admin-selected `paid` value is not gateway-
+verified. See [`DEVELOPMENT_ROADMAP.md`](DEVELOPMENT_ROADMAP.md).

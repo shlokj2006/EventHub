@@ -1,107 +1,48 @@
 # Development Roadmap
 
-## Stage 1 --- Environment setup
+The steps below distinguish the current repository implementation from work
+that remains. They are not a claim that the current branch is deployed or
+release-approved.
 
--   Install/check Node.js, VS Code, and Git.
--   Prepare GitHub and MongoDB Atlas accounts if needed.
--   Start the selected MERN event-booking tutorial.
--   Create the project and confirm that the initial application runs.
+## Implemented foundation
 
-**Checkpoint:** The project starts locally and the student can explain
-the initial folder structure.
+- MERN app structure, API routing, JWT authentication, bcrypt password hashes,
+  account verification, password reset, and server-side authorization.
+- Admin-managed event CRUD and public event discovery/search.
+- Multi-attendee booking, server-calculated totals, free confirmation, paid
+  seat reservations, 24-hour expiry, admin-recorded payment status, and
+  reservation reconciliation.
+- Event Staff designation and event assignment.
+- Idempotent ticket issuance, ticket PDF/QR generation, private downloads,
+  scanner UI, and server-side check-in.
+- OTP, password reset, and confirmed-booking email flows.
+- Backend/client utility tests and client build/lint scripts.
 
-## Stage 2 --- Backend fundamentals
+See [`FEATURE_CHECKLIST.md`](FEATURE_CHECKLIST.md) and
+[`TEST_PLAN.md`](TEST_PLAN.md) for operational checks and evidence limits.
 
--   Set up the Express server.
--   Connect MongoDB.
--   Learn Mongoose models.
--   Understand routes, controllers, and middleware.
--   Build and test REST API endpoints.
+## Before a live release or database transition
 
-**Checkpoint:** The backend starts reliably and basic endpoints can be
-tested.
+1. Run the applicable automated checks and resolve or document failures.
+2. Verify actual indexes read-only in each target database; apply only reviewed
+   migrations after checking malformed records and duplicates.
+3. Confirm the actual hosting environment, API routing, CORS, environment
+   variables, scheduler, and SMTP configuration without exposing secrets.
+4. Back up and rehearse any approved live data transition. Git merges do not
+   merge MongoDB documents; preserve current users and relationships.
+5. Perform an authorized end-to-end smoke test in the intended deployment.
 
-## Stage 3 --- Authentication and authorization
+The local seed and staff-index migration are restricted to loopback development
+databases. Never run them against production. The production database name is
+not known from repository files.
 
--   Implement registration and login.
--   Hash passwords using bcrypt.
--   Add JWT-based authentication.
--   Protect private routes.
--   Enforce the `user`, `organizer`, and `admin` roles.
+## Deferred next version
 
-**Checkpoint:** Unauthenticated and unauthorized requests are rejected
-by the backend.
+- Full-site UX redesign and consistency pass.
+- Real online payment gateway integration.
+- Provider-verified payment status, webhook handling, and payment
+  reconciliation.
 
-## Stage 4 --- Event management
-
--   Create event model and validation.
--   List events and view event details.
--   Implement event creation, update, and deletion.
--   Add categories.
-
-**Checkpoint:** Authorized organizers can manage events and attendees
-can browse them.
-
-## Stage 5 --- Registration
-
--   Register for an event.
--   Show a user's registrations.
--   Support cancellation where permitted.
--   Enforce capacity and registration status.
--   Prevent duplicate registrations.
-
-**Checkpoint:** Backend rules correctly reject invalid registrations.
-
-## Stage 6 --- React frontend
-
--   Build navbar and homepage.
--   Add event cards and event details.
--   Build login and registration pages.
--   Add attendee, organizer, and admin dashboards.
--   Connect pages to the backend API.
-
-**Checkpoint:** Core user journeys work through the UI.
-
-## Stage 7 --- Customize into EventHub
-
--   Add EventHub branding.
--   Improve the UI.
--   Add search and filters.
--   Improve event categories and dashboards.
--   Add registration status and capacity display.
-
-**Checkpoint:** The app reflects the EventHub project rather than
-remaining an unchanged tutorial.
-
-## Stage 8 --- Advanced features (optional)
-
-Potential additions: - QR-based attendance - Email notifications and
-reminders - Analytics - Reviews and ratings - Event recommendations -
-Image uploads - College Events module
-
-Do not begin these until the basic application works and is understood.
-
-## Stage 9 --- Testing and deployment
-
--   Test normal and invalid user flows.
--   Configure environment variables.
--   Deploy the frontend and backend.
--   Configure the production database connection.
--   Test the deployed application.
--   Document known limitations.
-
-## Learning loop
-
-``` text
-Watch a tutorial section
-        ↓
-Understand the purpose
-        ↓
-Implement it
-        ↓
-Test it
-        ↓
-Explain the code
-        ↓
-Customize it for EventHub
-```
+Admin approval can record `paid` or `not_paid`; this is manual status entry,
+not a payment gateway. Refunds and other features not in current routes also
+remain future work.

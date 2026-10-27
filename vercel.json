@@ -30,5 +30,11 @@
         "service": "client"
       }
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/bookings/maintenance/expire",
+      "schedule": "*/15 * * * *"
+    }
   ]
 }

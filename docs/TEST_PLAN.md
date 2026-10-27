@@ -1,89 +1,110 @@
-# Test Plan
+# Test Plan and Verification
 
-## Purpose
+## Automated checks
 
-Verify that EventHub's implemented authentication, event management,
-registration, role checks, and deployment behave as expected.
+From the repository root:
 
-## Test environment
+```powershell
+npm test --prefix server
+Push-Location client
+node --test
+Pop-Location
+npm run build --prefix client
+npm run lint --prefix client
+```
 
-Record the actual environment before testing: - Frontend URL/version: -
-Backend URL/version: - Database environment: - Browser: - Test date: -
-Tester:
+The server's `test` script runs Node's built-in test runner over `server/test/`.
+The client has no npm test script; its utility tests are in `client/test/` and
+run with `node --test` from `client/`. The client lint script runs ESLint on
+all client files. There is no server lint script; use `node --check` for
+changed CommonJS files or configure a lint system separately without implying
+that a syntax check is a lint run.
 
-## Test cases
+Automated coverage currently includes booking validation/reservation races,
+ownership and authorization, ticket issuance and check-in, scanner result
+mapping, password reset, mail transport mocks, event staff permissions, and
+seed/migration safety guards. Most backend controller tests use mocks. They do
+not replace a MongoDB integration test or establish indexes on any database.
+Mailer tests do not send real SMTP messages.
 
-  -----------------------------------------------------------------------
-  ID                Scenario          Expected result   Status
-  ----------------- ----------------- ----------------- -----------------
-  AUTH-01           Register with     Account created   Not run
-                    valid details                       
+## Manual test setup
 
-  AUTH-02           Register using an Request rejected  Not run
-                    existing email    clearly           
+Use only an isolated development database and test inboxes you control. Do not
+run the seed or migration against production. For SMTP checks, use a local mail
+catcher or disposable sandbox. Record environment names and test outcomes, but
+never record credentials, OTP values, reset tokens, ticket QR payloads, or
+personal attendee data in shared reports.
 
-  AUTH-03           Login with valid  Login succeeds    Not run
-                    credentials                         
+## Manual checklist
 
-  AUTH-04           Login with        Login rejected    Not run
-                    invalid                             
-                    credentials                         
+### Authentication and account recovery
 
-  AUTH-05           Access protected  Request rejected  Not run
-                    API without token                   
+- [ ] Register a new account; verify it receives an account OTP and can verify.
+- [ ] Attempt registration with an existing email; confirm no second account.
+- [ ] Sign in as an unverified account; verify it is not issued a JWT and a
+      fresh OTP can be requested. Simulate mail failure and confirm a retryable
+      error without exposing provider details.
+- [ ] Sign in with valid and invalid credentials; confirm the database role
+      determines the destination and permissions.
+- [ ] Request password reset for existing and unknown addresses; confirm the
+      response is generic and rate limits apply.
+- [ ] Complete a valid reset; verify old sessions are rejected, the token
+      cannot be reused, and an expired token fails.
 
-  ROLE-01           Attendee attempts Request rejected  Not run
-                    organizer-only                      
-                    action                              
+### Events, bookings, and capacity
 
-  ROLE-02           Non-admin         Request rejected  Not run
-                    attempts admin                      
-                    action                              
+- [ ] Browse/search events without a session; test category and title search.
+- [ ] Confirm Event Staff public event browsing is restricted to assignments.
+- [ ] Verify only an admin can create, update, or delete events.
+- [ ] Request booking OTP, then submit a free booking. Confirm it immediately
+      and verify one active ticket per attendee.
+- [ ] Submit a paid multi-attendee booking; verify capacity is held once and
+      status remains pending until admin approval.
+- [ ] Approve the paid booking as `paid` and another as `not_paid`. Confirm
+      booking/payment status remain separate and capacity is not decremented a
+      second time. Remember `paid` is admin-recorded, not gateway-verified.
+- [ ] Test missing/invalid OTP, nonpositive/fractional quantity, mismatch
+      between attendee count and quantity, invalid attendee details, full
+      capacity, duplicate active booking, and concurrent capacity claims.
+- [ ] Verify users see only their own booking history and cannot cancel
+      another user's booking. Verify admin cancellation of pending bookings is
+      recorded as rejection.
+- [ ] Verify expiry after 24 hours, cancellation, rejection, and maintenance
+      reconciliation release capacity once and void tickets where applicable.
 
-  EVT-01            Browse event list Events returned   Not run
+### Event Staff and tickets
 
-  EVT-02            View an existing  Details returned  Not run
-                    event                               
+- [ ] Designate an existing verified user from the admin dashboard; verify
+      role change invalidates their previous session.
+- [ ] Assign staff to one event; confirm assigned and unassigned event reads
+      and check-in requests are restricted correctly.
+- [ ] Download a ticket PDF as its owner; reject a different user and permit
+      explicit admin access. Confirm QR code and reference are present.
+- [ ] Scan a valid ticket; confirm the server records the actor and time.
+- [ ] Scan the same ticket again and concurrently from two clients; exactly
+      one first check-in should succeed.
+- [ ] Confirm void tickets and tickets for pending, cancelled, expired, or
+      otherwise ineligible bookings are rejected.
+- [ ] Deny camera permission and test unavailable camera and scanner cleanup.
 
-  EVT-03            Submit invalid    Validation error  Not run
-                    event data                          
+### Email delivery
 
-  EVT-04            Unauthorized user Request rejected  Not run
-                    edits event                         
+- [ ] Test signup verification, login OTP, booking OTP, password reset,
+      successful-reset notification, and confirmed-booking confirmation.
+- [ ] Confirm multi-attendee bookings attach a separate PDF for each ticket.
+- [ ] Simulate missing/partial configuration and SMTP authentication/connection
+      failures; ensure failures are reported safely and booking state is not
+      rolled back.
+- [ ] Confirm the mail provider accepted a test message separately from
+      confirming inbox delivery. Do not claim real SMTP behavior from mocks.
 
-  REG-01            Register for      Registration      Not run
-                    available event   saved             
+## Known verification boundaries
 
-  REG-02            Register twice    Duplicate         Not run
-                    for same event    rejected          
-
-  REG-03            Register for full Request rejected  Not run
-                    event                               
-
-  REG-04            Register after    Request rejected  Not run
-                    deadline, if                        
-                    enforced                            
-
-  REG-05            View own          Only own          Not run
-                    registrations     registrations     
-                                      shown             
-
-  REG-06            Cancel            Status updated    Not run
-                    registration, if  according to      
-                    supported         rules             
-
-  DEP-01            Use core flow on  Flow works in     Not run
-                    deployed app      production        
-  -----------------------------------------------------------------------
-
-## Reporting defects
-
-For each defect, record: - Test case ID - Steps to reproduce - Expected
-result - Actual result - Screenshot/logs, with secrets and personal data
-removed - Severity - Fix and retest result
-
-## Exit criteria
-
-Core implemented flows pass; critical authorization and
-registration-integrity defects are resolved; deployment has been
-smoke-tested. Update this plan to reflect features actually included.
+- Tests in `server/test/` are not a deployed MongoDB integration suite.
+- Schema-declared indexes must be verified in each target database; see
+  [`DATABASE_SCHEMA.md`](DATABASE_SCHEMA.md).
+- Client lint may currently report unused `React` imports in
+  `PaymentFailed.jsx` and `PaymentSuccess.jsx`; these are pre-existing client
+  lint findings and do not imply those pages implement payment processing.
+- Deployment smoke tests require a separately verified non-production or
+  authorized environment. Do not use production data for test cases.

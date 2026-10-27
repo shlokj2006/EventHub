@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useCallback } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import api from '../utils/axios';
 import { useNavigate } from 'react-router-dom';
@@ -9,25 +9,18 @@ const AdminDashboard = () => {
     const [events, setEvents] = useState([]);
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [approvingBookingId, setApprovingBookingId] = useState(null);
 
     const [showEventForm, setShowEventForm] = useState(false);
     const [formData, setFormData] = useState({
         title: '', description: '', date: '', location: '', category: '', totalSeats: '', ticketPrice: '', image: ''
     });
 
-    useEffect(() => {
-        if (!user || user.role !== 'admin') {
-            navigate('/login');
-            return;
-        }
-        fetchData();
-    }, [user, navigate]);
-
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             const [eventsRes, bookingsRes] = await Promise.all([
                 api.get('/events'),
-                api.get('/bookings/my') // Admin gets all bookings
+                api.get('/bookings/admin')
             ]);
             setEvents(eventsRes.data);
             setBookings(bookingsRes.data);
@@ -36,7 +29,15 @@ const AdminDashboard = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        if (!user || user.role !== 'admin') {
+            navigate('/login');
+            return;
+        }
+        void Promise.resolve().then(fetchData);
+    }, [user, navigate, fetchData]);
 
     const handleCreateEvent = async (e) => {
         e.preventDefault();
@@ -55,18 +56,21 @@ const AdminDashboard = () => {
             try {
                 await api.delete(`/events/${id}`);
                 fetchData();
-            } catch (error) {
+            } catch {
                 alert('Error deleting event');
             }
         }
     };
 
     const handleConfirmBooking = async (id, paymentStatus) => {
+        setApprovingBookingId(id);
         try {
             await api.put(`/bookings/${id}/confirm`, { paymentStatus });
             fetchData();
         } catch (error) {
             alert(error.response?.data?.message || 'Error confirming booking');
+        } finally {
+            setApprovingBookingId(null);
         }
     };
 
@@ -96,13 +100,16 @@ const AdminDashboard = () => {
                 >
                     {showEventForm ? 'Cancel Creation' : '+ Create New Event'}
                 </button>
+                <button onClick={() => navigate('/admin/staff')} className="w-full md:w-auto bg-gray-700 text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-600 transition shadow-md">
+                    Manage Event Staff
+                </button>
             </div>
 
             {/* Admin Stats Row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
                     <div>
-                        <p className="text-gray-500 text-sm font-bold uppercase tracking-wider mb-1">Total Revenue</p>
+                        <p className="text-gray-500 text-sm font-bold uppercase tracking-wider mb-1">Admin-Recorded Paid Total</p>
                         <h3 className="text-3xl font-black text-green-600">₹{bookings.reduce((sum, b) => b.paymentStatus === 'paid' && b.status === 'confirmed' ? sum + b.amount : sum, 0)}</h3>
                     </div>
                     <div className="w-12 h-12 bg-green-100 text-green-500 rounded-full flex items-center justify-center text-xl font-bold">₹</div>
@@ -185,7 +192,7 @@ const AdminDashboard = () => {
                                 bookings.map(booking => (
                                     <li key={booking._id} className={`p-6 hover:bg-gray-50 transition border-l-4 ${booking.status === 'pending' ? 'border-l-yellow-400' : booking.status === 'confirmed' ? 'border-l-green-400' : 'border-l-red-400'}`}>
                                         <div className="flex justify-between items-start mb-3">
-                                            <h4 className="font-bold text-gray-900 text-lg leading-tight">{booking.eventId?.title || 'Deleted Event'}</h4>
+                                            <h4 className="font-bold text-gray-900 text-lg leading-tight">{booking.eventTitle || booking.eventId?.title || 'Deleted Event'}</h4>
                                             <div className="flex flex-col gap-1 items-end shrink-0 ml-4">
                                                 <span className={`px-2 py-1 text-[10px] font-black rounded uppercase tracking-wider ${booking.status === 'confirmed' ? 'bg-green-100 text-green-700' : booking.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>{booking.status}</span>
                                                 {booking.status !== 'cancelled' && <span className={`px-2 py-1 text-[10px] font-black rounded uppercase tracking-wider ${booking.paymentStatus === 'paid' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-200 text-gray-800'}`}>{booking.paymentStatus.replace('_', ' ')}</span>}
@@ -205,6 +212,22 @@ const AdminDashboard = () => {
                                                 <span className="font-bold w-16 text-gray-500 uppercase text-xs">Date:</span>
                                                 <span>{new Date(booking.bookedAt).toLocaleString()}</span>
                                             </p>
+                                            <p className="text-gray-700 flex items-center gap-2 mb-1">
+                                                <span className="font-bold w-16 text-gray-500 uppercase text-xs">Tickets:</span>
+                                                <span>{booking.quantity || 1}</span>
+                                            </p>
+                                            {(booking.attendees || []).length > 0 && (
+                                                <div className="mt-2 border-t border-gray-200 pt-2">
+                                                    <p className="font-bold text-xs uppercase text-gray-500 mb-1">Attendees</p>
+                                                    <ul className="space-y-1">
+                                                        {booking.attendees.map((attendee, index) => (
+                                                            <li key={`${booking._id}-attendee-${index}`} className="text-gray-700">
+                                                                {index + 1}. {attendee.name}{attendee.email ? ` · ${attendee.email}` : ''}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
                                             {booking.eventId && (
                                                 <p className="text-gray-700 flex items-center gap-2 mt-2 pt-2 border-t border-gray-200">
                                                     <span className="font-bold w-16 text-gray-500 uppercase text-xs">Seats:</span>
@@ -213,17 +236,27 @@ const AdminDashboard = () => {
                                             )}
                                         </div>
 
+                                        {booking.status === 'confirmed' && booking.tickets?.length > 0 && (
+                                            <div className="mb-3 rounded-lg border border-green-100 bg-green-50 p-3 text-sm">
+                                                <p className="font-bold text-green-800 mb-1">Issued ticket references</p>
+                                                <ul className="space-y-1">
+                                                    {booking.tickets.map(ticket => <li key={ticket._id}>{ticket.attendee?.name}: <span className="font-mono">{ticket.ticketReference}</span></li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+
                                         {/* Action buttons for admin */}
-                                        {booking.status === 'pending' && (
+                                        {booking.status === 'pending' && booking.amount > 0 && (
                                             <div className="flex flex-wrap gap-2 mt-2">
-                                                <button onClick={() => handleConfirmBooking(booking._id, 'paid')} className="flex-1 min-w-[120px] bg-green-50 text-green-700 hover:bg-green-600 hover:text-white border border-green-200 text-xs font-bold py-2.5 px-3 rounded-lg shadow-sm transition">
-                                                    ✓ Approve as Paid
+                                                <p className="w-full text-xs text-gray-500">Choose an admin-recorded status. Paid does not mean gateway verification.</p>
+                                                <button disabled={approvingBookingId === booking._id} title="Confirm and record as paid" onClick={() => handleConfirmBooking(booking._id, 'paid')} className="flex-1 min-w-[120px] bg-green-50 text-green-700 hover:bg-green-600 hover:text-white border border-green-200 text-xs font-bold py-2.5 px-3 rounded-lg shadow-sm transition disabled:opacity-50">
+                                                    Confirm + Mark Paid
                                                 </button>
-                                                <button onClick={() => handleConfirmBooking(booking._id, 'not_paid')} className="flex-1 min-w-[120px] bg-gray-50 text-gray-700 hover:bg-gray-800 hover:text-white border border-gray-200 text-xs font-bold py-2.5 px-3 rounded-lg shadow-sm transition">
-                                                    ✓ Approve Undecided
+                                                <button disabled={approvingBookingId === booking._id} onClick={() => handleConfirmBooking(booking._id, 'not_paid')} className="flex-1 min-w-[145px] bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white border border-blue-200 text-xs font-bold py-2.5 px-3 rounded-lg shadow-sm transition disabled:opacity-50">
+                                                    Confirm + Mark Unpaid
                                                 </button>
                                                 <button onClick={() => handleCancelBooking(booking._id)} className="w-[80px] bg-red-50 text-red-600 hover:bg-red-500 hover:text-white border border-red-200 text-xs font-bold py-2.5 px-3 rounded-lg transition">
-                                                    ✕ Reject
+                                                    Reject
                                                 </button>
                                             </div>
                                         )}
