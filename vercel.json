@@ -32,9 +32,9 @@
     }
   ],
   "crons": [
-    {
-      "path": "/api/bookings/maintenance/expire",
-      "schedule": "*/15 * * * *"
-    }
-  ]
+  {
+    "path": "/api/bookings/maintenance/expire",
+    "schedule": "0 0 * * *"
+  }
+]
 }
