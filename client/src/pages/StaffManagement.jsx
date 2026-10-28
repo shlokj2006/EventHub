@@ -29,16 +29,16 @@ const StaffManagement = () => {
 
     useEffect(() => { void Promise.resolve().then(loadData); }, [loadData]);
 
-    const designate = async (event) => {
+    const createStaff = async (event) => {
         event.preventDefault();
-        setBusyId('designate'); setError(''); setNotice('');
+        setBusyId('create-staff'); setError(''); setNotice('');
         try {
             const { data } = await api.post('/staff/admin', { email });
             setEmail('');
-            setNotice(`Event staff access enabled for ${data.staff.email}. Their existing login was revoked; they need to sign in again.`);
+            setNotice(data.message || `Staff account created for ${data.staff.email}. They must set a password through Forgot Password and verify the email before signing in.`);
             await loadData();
         } catch (err) {
-            setError(err.response?.data?.message || 'Unable to designate this account.');
+            setError(err.response?.data?.message || 'Unable to create this staff account.');
         } finally { setBusyId(''); }
     };
 
@@ -70,15 +70,15 @@ const StaffManagement = () => {
         <section className="max-w-5xl mx-auto">
             <Link to="/admin" className="font-semibold text-gray-700 underline">← Admin dashboard</Link>
             <h1 className="mt-4 text-3xl font-extrabold text-gray-900">Event Staff Management</h1>
-            <p className="mt-2 text-gray-600">Designate an existing verified account, assign its event access, or revoke the role. Staff choose their password through the existing account recovery flow.</p>
+            <p className="mt-2 text-gray-600">Create a new staff account by email, assign event access, or revoke the role. Staff set their own password through Forgot Password and verify their email before signing in.</p>
             {error && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-red-800">{error}</p>}
             {notice && <p role="status" className="mt-4 rounded-lg bg-green-50 p-3 text-green-800">{notice}</p>}
-            <form onSubmit={designate} className="mt-6 flex flex-col gap-3 rounded-xl bg-white p-5 shadow-sm sm:flex-row">
-                <label className="sr-only" htmlFor="staff-email">Verified account email</label>
-                <input id="staff-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Verified account email" className="min-w-0 flex-1 rounded-lg border border-gray-300 px-4 py-3" />
-                <button disabled={busyId === 'designate'} className="rounded-lg bg-gray-900 px-5 py-3 font-bold text-white disabled:opacity-50">Designate as staff</button>
+            <form onSubmit={createStaff} className="mt-6 flex flex-col gap-3 rounded-xl bg-white p-5 shadow-sm sm:flex-row">
+                <label className="sr-only" htmlFor="staff-email">New staff email</label>
+                <input id="staff-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="New staff email" className="min-w-0 flex-1 rounded-lg border border-gray-300 px-4 py-3" />
+                <button disabled={busyId === 'create-staff'} className="rounded-lg bg-gray-900 px-5 py-3 font-bold text-white disabled:opacity-50">Create staff account</button>
             </form>
-            <p className="mt-2 text-sm text-gray-500">Only existing verified user accounts can be designated. A staff member can use “Forgot password” to set a password known only to them.</p>
+            <p className="mt-2 text-sm text-gray-500">Only new email addresses can be used. The account stays unverified until the staff member controls the inbox and completes email verification.</p>
             {loading ? <p role="status" className="py-12 text-center">Loading staff…</p> : staff.length === 0 ? <p className="mt-6 rounded-xl bg-white p-8 text-center text-gray-600">No staff accounts yet.</p> : (
                 <ul className="mt-6 space-y-4">{staff.map((person) => <li key={person._id} className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
                     <div className="flex flex-wrap items-start justify-between gap-3">

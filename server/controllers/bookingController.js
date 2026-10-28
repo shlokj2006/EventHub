@@ -76,6 +76,15 @@ exports.bookEvent = async (req, res) => {
             return res.status(400).json({ message: 'Invalid or expired OTP for booking' });
         }
 
+        const requestTime = new Date();
+        const expiredBookings = await Booking.find({
+            userId: req.user.id,
+            eventId,
+            status: 'pending',
+            reservationExpiresAt: { $lte: requestTime },
+        }).select('_id');
+        for (const expiredBooking of expiredBookings) await expireBooking(expiredBooking._id, requestTime);
+
         const event = await Event.findById(eventId);
         if (!event) return res.status(404).json({ message: 'Event not found' });
         if (!hasCapacity(event.availableSeats, quantity)) {
@@ -83,20 +92,6 @@ exports.bookEvent = async (req, res) => {
         }
         if (!isValidPrice(event.ticketPrice)) {
             return res.status(400).json({ message: 'Event price is not configured correctly' });
-        }
-
-        let existingBooking = await Booking.findOne({ userId: req.user.id, eventId, status: { $ne: 'cancelled' } });
-        const requestTime = new Date();
-        if (
-            existingBooking?.status === 'pending' &&
-            existingBooking.reservationExpiresAt &&
-            existingBooking.reservationExpiresAt <= requestTime
-        ) {
-            await expireBooking(existingBooking._id, requestTime);
-            existingBooking = await Booking.findOne({ userId: req.user.id, eventId, status: { $ne: 'cancelled' } });
-        }
-        if (existingBooking) {
-            return res.status(400).json({ message: 'Already booked or pending' });
         }
 
         const amount = calculateTotal(event.ticketPrice, quantity);

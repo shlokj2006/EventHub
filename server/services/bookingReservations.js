@@ -10,7 +10,6 @@ const createCapacityClaim = async ({ eventId, bookingId, userId, quantity, state
     {
       _id: eventId,
       availableSeats: { $gte: quantity },
-      'capacityClaims.userId': { $ne: userId },
       'capacityClaims.bookingId': { $ne: bookingId },
     },
     {

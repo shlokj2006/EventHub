@@ -188,12 +188,14 @@ const UserDashboard = () => {
                                 {booking.eventId && ['pending', 'confirmed'].includes(booking.status) ? (
                                     <>
                                         <Link to={`/events/${booking.eventId._id}`} className="text-gray-900 font-semibold text-sm hover:underline">View Event</Link>
-                                        <button
-                                            onClick={() => cancelBooking(booking._id)}
-                                            className="text-red-500 font-semibold text-sm hover:text-red-700 transition flex items-center gap-1"
-                                        >
-                                            <FaTimesCircle /> Cancel
-                                        </button>
+                                        {user?.role !== 'event_staff' && (
+                                            <button
+                                                onClick={() => cancelBooking(booking._id)}
+                                                className="text-red-500 font-semibold text-sm hover:text-red-700 transition flex items-center gap-1"
+                                            >
+                                                <FaTimesCircle /> Cancel
+                                            </button>
+                                        )}
                                     </>
                                 ) : (
                                     <div className="w-full text-center text-sm text-gray-500 italic">Booking Cancelled</div>

@@ -97,6 +97,21 @@ test('login does not report an OTP as sent when the mail transport rejects it', 
   assert.equal(state.sent.length, 0);
 });
 
+test('an unverified staff account cannot authenticate with its chosen password before inbox OTP verification', async () => {
+  resetState();
+  state.user = {
+    _id: 'staff-2', id: 'staff-2', email: 'staff@example.test', password: 'hash:staff-chosen-password',
+    role: 'event_staff', isVerified: false,
+  };
+  const response = await call(authController.login, { email: 'staff@example.test', password: 'staff-chosen-password' });
+  assert.equal(response.status, 403);
+  assert.equal(response.body.needsVerification, true);
+  assert.equal(Object.hasOwn(response.body, 'token'), false);
+  assert.equal(state.sent.length, 1);
+  assert.equal(state.sent[0].email, 'staff@example.test');
+  assert.equal(state.sent[0].type, 'account_verification');
+});
+
 test('signup success sends the verification OTP before returning success', async () => {
   resetState();
   const response = await call(authController.register, {

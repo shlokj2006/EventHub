@@ -38,4 +38,9 @@ const eventStaff = (req, res, next) => {
     return res.status(403).json({ message: 'Not authorized as event staff' });
 };
 
-module.exports = { protect, optionalProtect, admin, eventStaff };
+const bookingParticipant = (req, res, next) => {
+    if (req.user && req.user.role !== 'event_staff') return next();
+    return res.status(403).json({ message: 'Event staff accounts cannot create or cancel bookings' });
+};
+
+module.exports = { protect, optionalProtect, admin, eventStaff, bookingParticipant };

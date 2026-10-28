@@ -1,4 +1,6 @@
 const mongoose = require('mongoose');
+const crypto = require('node:crypto');
+const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Event = require('../models/Event');
 const EventStaffAssignment = require('../models/EventStaffAssignment');
@@ -24,29 +26,33 @@ exports.listStaff = async (req, res) => {
     }
 };
 
-// Admin designation reuses a verified account. The user chooses their own password
-// through the existing password-reset flow; no password or invite secret is issued here.
-exports.designateStaff = async (req, res) => {
+// New staff accounts start unverified with an unguessable password known only
+// to the server. The email owner establishes their own password by reset, then
+// completes the existing email OTP verification before they can authenticate.
+exports.createStaff = async (req, res) => {
     const email = normalizeEmail(req.body?.email);
     if (!isValidEmail(email)) return res.status(400).json({ message: 'Enter a valid email address.' });
     try {
         const escaped = email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const matches = await User.find({ email: { $regex: `^${escaped}$`, $options: 'i' } }).limit(2);
-        if (matches.length !== 1) return res.status(matches.length ? 409 : 404).json({ message: matches.length ? 'This email matches multiple accounts.' : 'Verified account not found.' });
-        const target = matches[0];
-        if (String(target._id) === String(req.user._id)) return res.status(403).json({ message: 'Admins cannot designate their own account as event staff.' });
-        if (!target.isVerified) return res.status(409).json({ message: 'The account must verify its email before staff designation.' });
-        if (target.role === 'admin') return res.status(409).json({ message: 'An admin account cannot be designated as event staff.' });
-        if (target.role === 'event_staff') return res.status(200).json({ staff: publicStaff(target), message: 'Account is already event staff.' });
-        const updated = await User.findOneAndUpdate(
-            { _id: target._id, role: 'user', isVerified: true },
-            { $set: { role: 'event_staff' }, $inc: { tokenVersion: 1 } },
-            { new: true, runValidators: true },
-        ).select('_id name email role isVerified');
-        if (!updated) return res.status(409).json({ message: 'Account role changed; refresh and try again.' });
-        return res.status(201).json({ staff: publicStaff(updated) });
-    } catch {
-        return res.status(500).json({ message: 'Unable to designate event staff.' });
+        if (matches.length) return res.status(409).json({ message: matches.length > 1 ? 'This email matches multiple accounts.' : 'An account with this email already exists.' });
+
+        const initialCredential = crypto.randomBytes(32).toString('base64url');
+        const password = await bcrypt.hash(initialCredential, await bcrypt.genSalt(10));
+        const staff = await User.create({
+            name: email.slice(0, email.indexOf('@')).slice(0, 120) || 'Event Staff',
+            email,
+            password,
+            role: 'event_staff',
+            isVerified: false,
+        });
+        return res.status(201).json({
+            staff: publicStaff(staff),
+            message: 'Staff account created. The staff member must use Forgot Password for this email, then complete email verification before signing in.',
+        });
+    } catch (error) {
+        if (error.code === 11000) return res.status(409).json({ message: 'An account with this email already exists.' });
+        return res.status(500).json({ message: 'Unable to create the event staff account.' });
     }
 };
 

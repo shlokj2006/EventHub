@@ -39,11 +39,14 @@ const claimModelStubs = (event) => ({
   findOneAndUpdate: async (filter, update) => {
     const bookingId = update.$push?.capacityClaims?.bookingId;
     if (!bookingId) return null;
-    const userId = update.$push.capacityClaims.userId;
     const exists = event.capacityClaims.some((claim) => claim.bookingId === bookingId);
-    const duplicateUser = event.capacityClaims.some((claim) => claim.userId === userId);
     const quantity = -update.$inc.availableSeats;
-    if (exists || duplicateUser || event.availableSeats < quantity) return null;
+    assert.deepEqual(filter, {
+      _id: event._id,
+      availableSeats: { $gte: quantity },
+      'capacityClaims.bookingId': { $ne: bookingId },
+    });
+    if (exists || event.availableSeats < quantity) return null;
     event.availableSeats += update.$inc.availableSeats;
     event.capacityClaims.push(update.$push.capacityClaims);
     return event;
@@ -86,13 +89,24 @@ test('booking exceeding remaining capacity is rejected without changing seats', 
   });
 });
 
-test('simultaneous capacity claims cannot oversell or double-book one user', async () => {
+test('a user may reserve the same event more than once while capacity remains', async () => {
+  const event = makeEventStore({ availableSeats: 3 });
+  await withStubs(Event, claimModelStubs(event), async () => {
+    const first = await createCapacityClaim({ eventId: event._id, bookingId: 'b1', userId: 'u1', quantity: 1, state: 'consumed' });
+    const second = await createCapacityClaim({ eventId: event._id, bookingId: 'b2', userId: 'u1', quantity: 2, state: 'reserved' });
+    assert.equal(first.created, true);
+    assert.equal(second.created, true);
+    assert.equal(event.availableSeats, 0);
+    assert.deepEqual(event.capacityClaims.map((claim) => claim.userId), ['u1', 'u1']);
+  });
+});
+
+test('simultaneous repeat claims cannot oversell event capacity', async () => {
   const event = makeEventStore({ availableSeats: 3 });
   await withStubs(Event, claimModelStubs(event), async () => {
     const results = await Promise.all([
       createCapacityClaim({ eventId: event._id, bookingId: 'b1', userId: 'u1', quantity: 2, state: 'reserved' }),
-      createCapacityClaim({ eventId: event._id, bookingId: 'b2', userId: 'u2', quantity: 2, state: 'reserved' }),
-      createCapacityClaim({ eventId: event._id, bookingId: 'b3', userId: 'u1', quantity: 1, state: 'reserved' }),
+      createCapacityClaim({ eventId: event._id, bookingId: 'b2', userId: 'u1', quantity: 2, state: 'reserved' }),
     ]);
     assert.equal(results.filter(Boolean).length, 1);
     assert.equal(event.availableSeats, 1);

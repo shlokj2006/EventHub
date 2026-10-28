@@ -163,7 +163,11 @@ const EventDetail = () => {
                             </div>
                         </div>
 
-                            <div className="space-y-3 border-t border-gray-200 pt-4">
+                        {user?.role === 'event_staff' ? (
+                            <p role="status" className="border-t border-gray-200 pt-4 text-sm text-gray-600">Event Staff accounts can scan tickets for assigned events and cannot make bookings.</p>
+                        ) : (
+                        <>
+                        <div className="space-y-3 border-t border-gray-200 pt-4">
                                 <label htmlFor="ticket-quantity" className="block text-sm font-semibold text-gray-700">Ticket quantity</label>
                                 <input
                                     id="ticket-quantity"
@@ -246,9 +250,11 @@ const EventDetail = () => {
                         </button>
                         {error && <p className="text-red-500 mt-4 text-center font-medium bg-red-50 p-2 rounded">{error}</p>}
                         {successMsg && <p className="text-green-600 mt-4 text-center font-medium bg-green-50 p-2 rounded">{successMsg}</p>}
-                    </div>
+                        </>
+                        )}
                 </div>
             </div>
+        </div>
         </div>
     );
 };
