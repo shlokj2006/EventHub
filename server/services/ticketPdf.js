@@ -1,6 +1,7 @@
+// Explicitly load Helvetica so Vercel includes PDFKit's font asset.
+require('pdfkit/standard-fonts/Helvetica');
 const PDFDocument = require('pdfkit');
 const QRCode = require('qrcode');
-
 const renderTicketPdf = async (ticket, eventLocation) => {
     const qrBuffer = await QRCode.toBuffer(ticket.ticketReference, {
         type: 'png',

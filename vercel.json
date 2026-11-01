@@ -15,10 +15,7 @@
 "server": {
   "root": "server/",
   "framework": "express",
-  "entrypoint": "index.js",
-  "includeFiles": [
-    "node_modules/pdfkit/js/standard-fonts/**/*"
-  ]
+  "entrypoint": "index.js"
 }
 
   },
