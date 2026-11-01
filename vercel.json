@@ -14,7 +14,12 @@
     "server": {
       "root": "server/",
       "framework": "express",
-      "entrypoint": "index.js"
+      "entrypoint": "index.js",
+      "functions": {
+        "index.js": {
+          "includeFiles": "node_modules/pdfkit/js/standard-fonts/**/*"
+        }
+      }
     }
   },
   "rewrites": [
@@ -32,9 +37,9 @@
     }
   ],
   "crons": [
-  {
-    "path": "/api/bookings/maintenance/expire",
-    "schedule": "0 0 * * *"
-  }
-]
+    {
+      "path": "/api/bookings/maintenance/expire",
+      "schedule": "0 0 * * *"
+    }
+  ]
 }
