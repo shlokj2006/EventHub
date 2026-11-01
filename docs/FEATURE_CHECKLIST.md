@@ -1,66 +1,45 @@
 # Feature Checklist
 
-Mark a feature complete only after implementation and testing.
+This is an implementation inventory, not a deployment/release sign-off.
+Automated coverage and manual checks are tracked separately in
+[`TEST_PLAN.md`](TEST_PLAN.md).
 
-## Foundation
+## Implemented in the current source
 
--   [ ] Repository and project folders set up
--   [ ] Frontend runs locally
--   [ ] Express backend runs locally
--   [ ] MongoDB connection works
--   [ ] Environment variables configured safely
+- [x] React/Vite client, Express API, Mongoose persistence, Vite `/api` proxy.
+- [x] Public event list/detail, title search, category filter, admin event CRUD.
+- [x] User signup, email OTP verification, login, JWT session validation,
+      password reset, session-version invalidation.
+- [x] Roles: `user`, `event_staff`, `admin`; server-side authorization.
+- [x] Admin-designated Event Staff with unique event assignments and scoped
+      event reads/check-in access.
+- [x] Single and multi-attendee booking, server-calculated amount, free
+      auto-confirmation, paid reservation and admin approval.
+- [x] Reservation expiry/reconciliation, cancellation/rejection, idempotent
+      capacity release for legacy and current reservations.
+- [x] Idempotent ticket issuance, private PDF download, opaque-reference QR,
+      server-side atomic check-in.
+- [x] OTP, password-reset, confirmed-booking emails and mocked mail transport
+      tests; optional custom SMTP with legacy Gmail compatibility.
+- [x] Backend and client utility automated tests, client build and lint scripts.
 
-## Authentication and roles
+## Operational verification still required per environment
 
--   [ ] User registration
--   [ ] User login
--   [ ] Password hashing with bcrypt
--   [ ] JWT authentication
--   [ ] Protected API routes
--   [ ] Role-based authorization for user, organizer, and admin
+- [ ] Verify schema-declared indexes in each target MongoDB database.
+- [ ] Rehearse a test-inbox SMTP send using the intended provider.
+- [ ] Verify deployment routes, secrets, CORS, cron execution, and production
+      smoke tests in an authorized environment.
+- [ ] Review current lint findings and any remaining test/build failures before
+      release.
+- [ ] Prepare approved, backed-up data/index migration plan before a live
+      database transition.
 
-## Events
+## Deferred next-version scope
 
--   [ ] List events
--   [ ] View event details
--   [ ] Create event
--   [ ] Update event
--   [ ] Delete event
--   [ ] Event categories
--   [ ] Event image support, if included
--   [ ] Search and filters
+- [ ] Full-site UX redesign and consistency pass.
+- [ ] Real online payment gateway integration.
+- [ ] Gateway payment verification, webhooks, and reconciliation.
+- [ ] Refunds and any other feature not represented by current routes.
 
-## Registrations
-
--   [ ] Register for an event
--   [ ] View personal registrations
--   [ ] Cancel registration where permitted
--   [ ] Prevent duplicate registrations
--   [ ] Enforce registration deadline, if configured
--   [ ] Enforce event capacity on the backend
--   [ ] Organizer can view participants
-
-## Dashboards and administration
-
--   [ ] Attendee dashboard
--   [ ] Organizer dashboard
--   [ ] Admin dashboard
--   [ ] User and event management for admins
--   [ ] Basic platform statistics
-
-## Quality and release
-
--   [ ] Loading, empty, success, and error states
--   [ ] Manual test cases completed
--   [ ] Responsive layout checked
--   [ ] Secrets excluded from Git
--   [ ] Deployment configuration complete
--   [ ] Production smoke test completed
-
-## Optional future features
-
--   [ ] QR-based attendance
--   [ ] Email notifications/reminders
--   [ ] Analytics
--   [ ] Reviews/ratings
--   [ ] College Events module
+Do not mark operational checks complete based only on local mocks or schema
+declarations. Manual admin selection of `paid` is not payment verification.

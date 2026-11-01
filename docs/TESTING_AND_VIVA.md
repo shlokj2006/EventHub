@@ -1,112 +1,64 @@
 # Testing and Viva Preparation
 
-## Suggested manual test cases
+Use [`TEST_PLAN.md`](TEST_PLAN.md) for the current automated commands and
+end-to-end checklist. Tests that use mocked models or Nodemailer are not
+database or provider integration tests.
 
-  -----------------------------------------------------------------------
-  Area                    Test                    Expected result
-  ----------------------- ----------------------- -----------------------
-  Authentication          Register with valid     Account is created
-                          details                 
+## Current manual demonstration
 
-  Authentication          Register with an email  Request is rejected
-                          already used            with a clear message
+1. Browse/search events, register a user, and verify the account OTP.
+2. Request a booking OTP and create a free or paid multi-attendee booking.
+3. Demonstrate immediate free confirmation or pending paid reservation.
+4. As admin, confirm the paid booking with `paid` or `not_paid`; explain that
+   this is manual status recording, not gateway payment verification.
+5. Download owner ticket PDFs, then scan a ticket as assigned Event Staff.
+6. Show duplicate-scan rejection and the server-recorded check-in result.
+7. Demonstrate password reset and Event Staff assignment scope if time allows.
 
-  Authentication          Log in with valid       Login succeeds
-                          credentials             
+Use a local/development database and test mail inbox. Do not demo with
+production credentials or reveal OTPs, reset links, raw QR references, or
+private user data in screenshots.
 
-  Authentication          Log in with invalid     Login is rejected
-                          credentials             
+## Viva questions
 
-  Authorization           Call a protected        Request is rejected
-                          endpoint without        
-                          authentication          
+### Architecture and data
 
-  Authorization           Attendee attempts an    Request is rejected
-                          organizer-only action   
+1. What do MongoDB, Express, React, and Node contribute to the application?
+2. How does Axios reach Express in local development and deployment?
+3. Why does the backend load the current user role instead of trusting the JWT
+   role claim alone?
+4. Why is `Booking` the registration record rather than a separate
+   `Registration` model?
+5. How do a booking and its attendees map to ticket documents?
 
-  Events                  Browse events           Event list is returned
+### Booking integrity
 
-  Events                  Open an existing event  Event details are
-                                                  returned
+6. How is total price derived and validated?
+7. How does the Event capacity claim prevent overselling?
+8. What is the difference between a paid reservation and a confirmed booking?
+9. Why does approval not decrement capacity again?
+10. What happens when a reservation expires or is cancelled?
+11. Why is the workflow recoverable but not a multi-document transaction?
 
-  Events                  Submit invalid event    Validation error is
-                          data                    returned
+### Authentication and roles
 
-  Events                  Unauthorized user       Request is rejected
-                          attempts to edit an     
-                          event                   
+12. How do OTP verification and JWT session validation work?
+13. How does password reset expire, remain single-use, and invalidate sessions?
+14. What can an Event Staff user access, and how are assignments checked?
+15. How does ticket ownership constrain PDF downloads?
 
-  Registration            Register for an open    Registration is saved
-                          event with available    
-                          capacity                
+### Tickets and future scope
 
-  Registration            Register for the same   Duplicate is rejected
-                          event twice             
+16. What data is in the QR payload and where is validity decided?
+17. How does the conditional check-in update suppress concurrent scans?
+18. What do `paid` and `not_paid` mean today?
+19. Which payment, UX, or operational features remain future work?
+20. Why can mocked Nodemailer tests not prove email reached an inbox?
 
-  Registration            Register after capacity Registration is
-                          is reached              rejected
+## Answer from current code
 
-  Registration            Register after a        Registration is
-                          deadline, if enforced   rejected
-
-  Registration            View own registrations  Only the user's
-                                                  registrations are shown
-
-  Admin                   Non-admin attempts an   Request is rejected
-                          admin action            
-
-  Deployment              Open the deployed app   Core flows work in
-                          and use core flows      production
-  -----------------------------------------------------------------------
-
-Update these test cases to match the features actually implemented.
-
-## Viva questions to prepare
-
-### MERN and architecture
-
-1.  What does MERN stand for?
-2.  Why use React for the frontend?
-3.  What is Node.js?
-4.  What does Express.js do?
-5.  What is MongoDB?
-6.  What is Mongoose?
-7.  How does React communicate with the Express backend?
-8.  What is a REST API?
-
-### Authentication and security
-
-9.  What is authentication?
-10. How is authorization different from authentication?
-11. What is JWT used for in this project?
-12. Why should passwords be hashed?
-13. What is bcrypt?
-14. What is middleware?
-15. How are protected routes handled?
-16. Why must role checks happen on the backend?
-
-### Data and registration
-
-17. What information is stored in a User document?
-18. What information is stored in an Event document?
-19. Why is a separate Registration model useful?
-20. How are users, events, and registrations related?
-21. How does the application prevent duplicate registrations?
-22. How does the backend enforce event capacity?
-23. What happens when a user cancels a registration?
-24. How could QR-based attendance work if implemented?
-
-### Project decisions
-
-25. Why is EventHub general-purpose rather than college-only?
-26. Which features were learned from the tutorial?
-27. What customizations distinguish EventHub from the tutorial?
-28. What challenges did you encounter and how did you solve them?
-29. What would you improve in a future version?
-30. Which features are completed, and which remain future scope?
-
-## Viva preparation rule
-
-Answer based on the actual code and tested behavior. Do not claim that a
-planned feature is implemented unless it works in the submitted
-application.
+Do not claim an organizer role, separate registration model, payment gateway,
+gateway webhook, refund, event-date ticket expiry, deployed database index, or
+production deployment unless separately implemented and verified. The
+production database name is unknown from repository files. See
+[`PROJECT_OVERVIEW.md`](PROJECT_OVERVIEW.md) for limitations.

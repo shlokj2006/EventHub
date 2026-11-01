@@ -1,83 +1,77 @@
-# EventHub --- MERN-Based Event Management and Registration Platform
+# EventHub
 
-EventHub is a planned general-purpose event management platform built
-with the MERN stack. It is intended as a B.Tech CSE project and a
-practical full-stack development portfolio project.
+EventHub is a MERN event discovery and booking application. It supports
+verified user accounts, administrator-managed events and bookings,
+event-specific staff access, multi-attendee tickets, PDF downloads, QR-based
+check-in, and email notifications. The current repository state is on
+`feature/eventhub-booking-tickets`. This describes repository implementation,
+not a claim that the application is deployed or release-approved.
 
-> **Project status:** Planning / initial setup. Features described in
-> these documents are planned unless marked as completed in the project
-> repository.
+## Current scope
 
-## Project goals
+- Public users can browse and search events, sign up, verify their email, and
+  book events.
+- Free bookings confirm immediately. Paid bookings reserve seats for 24 hours
+  and require an administrator to confirm them, recording `paid` or `not_paid`
+  as a manual status. There is no payment gateway or gateway verification.
+- Confirmed bookings issue one ticket per attendee. Owners can download their
+  PDF tickets; admins can download tickets explicitly. Admins and assigned
+  Event Staff can check tickets in through the server-verified scanner.
+- Admins manage event records, approve bookings, and designate/assign/revoke
+  Event Staff. There is no separate organizer role.
 
--   Let attendees discover events, view details, register, and manage
-    registrations.
--   Let organizers create and manage events and view participants.
--   Provide administrative tools for managing users, events, and
-    registrations.
--   Demonstrate React, Node.js, Express, MongoDB, Mongoose,
-    authentication, authorization, CRUD, filtering, and deployment.
+The current implementation and known limits are documented in
+[`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md). See
+[`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) for routes and
+[`docs/DATABASE_SCHEMA.md`](docs/DATABASE_SCHEMA.md) for model/index details.
 
-## Planned technology stack
+## Local development
 
--   **Frontend:** React.js, React Router, Axios, CSS / Bootstrap /
-    Tailwind
--   **Backend:** Node.js, Express.js
--   **Database:** MongoDB, Mongoose
--   **Authentication:** JWT and bcrypt
--   **Development:** VS Code, Git, GitHub
--   **Possible deployment:** Vercel (frontend), Render (backend),
-    MongoDB Atlas (database)
+Prerequisites: Node.js compatible with the locked Vite version, npm, and a
+MongoDB instance used only for development. Create `server/.env` from
+`server/.env.example`, provide a development `MONGODB_URI` and `JWT_SECRET`,
+and configure email only if testing mail delivery. Keep credentials out of
+Git. The server loads `server/.env` relative to its own directory.
 
-## Main roles
+```powershell
+npm install
+npm run install:all
+npm run dev
+```
 
--   **Attendee/User:** Browse and search events, register, view
-    registrations, cancel where permitted, and manage a profile.
--   **Organizer:** Create, edit, and delete events; set event details
-    and capacity; view registrations and event statistics.
--   **Admin:** Manage users and organizers, review events, remove
-    inappropriate events, and view platform statistics.
+The root `dev` script starts the Vite client and Express server concurrently.
+Vite serves the client at `http://localhost:5173` and proxies `/api` to
+`http://localhost:5000`. To run one side separately, use `npm run dev:client`
+or `npm run dev:server`. `npm run build` builds the client and `npm run lint`
+runs the client ESLint checks. Backend tests run with:
 
-## Project documentation
+```powershell
+npm test --prefix server
+```
 
--   [Project overview](docs/PROJECT_OVERVIEW.md)
--   [Features and requirements](docs/FEATURES_AND_REQUIREMENTS.md)
--   [Technology stack](docs/TECH_STACK.md)
--   [Database design](docs/DATABASE_DESIGN.md)
--   [Architecture and folder
-    structure](docs/ARCHITECTURE_AND_STRUCTURE.md)
--   [Development roadmap](docs/DEVELOPMENT_ROADMAP.md)
--   [Deployment plan](docs/DEPLOYMENT.md)
--   [Testing and viva preparation](docs/TESTING_AND_VIVA.md)
--   [College project deliverables](docs/PROJECT_DELIVERABLES.md)
+For client production hosting, set `VITE_API_URL` to the API base including
+`/api`; otherwise the client uses relative `/api` URLs. See
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for environment and hosting details.
 
-## Recommended implementation order
+## Documentation map
 
-1.  Set up the development environment and run the selected tutorial
-    project.
-2.  Build and understand the backend, database models, routes,
-    controllers, and middleware.
-3.  Add authentication and role-based authorization.
-4.  Implement event CRUD and registration.
-5.  Build the React pages and dashboards.
-6.  Customize the tutorial project into EventHub with branding, search,
-    filters, and capacity rules.
-7.  Test and deploy the features that have actually been implemented.
-8.  Consider QR attendance and other advanced features after the core
-    application works.
+- [Architecture and structure](docs/ARCHITECTURE_AND_STRUCTURE.md)
+- [API contract](docs/API_CONTRACT.md)
+- [Booking reservation policy](docs/RESERVATION_POLICY.md)
+- [Database schema and index safety](docs/DATABASE_SCHEMA.md)
+- [Deployment and environment setup](docs/DEPLOYMENT.md)
+- [Test plan and verification](docs/TEST_PLAN.md)
+- [Feature requirements and current scope](docs/FEATURES_AND_REQUIREMENTS.md)
+- [Project overview](docs/PROJECT_OVERVIEW.md)
+- [Technology stack](docs/TECH_STACK.md)
 
-## Learning foundation
+The older tutorial-era images in `docs/fc.png` and `docs/dfd.png` are retained
+as historical drafts; they are not current process diagrams. Use the Mermaid
+diagrams in the architecture and reservation documents.
 
-The selected learning resource is the YouTube tutorial **"MERN Stack
-Event Booking Web App --- React, Node.js, MongoDB, JWT Auth"**:
-https://www.youtube.com/watch?v=n7ii3Zcs6k0
+## Future version
 
-The tutorial is a learning foundation, not the intended final
-submission. The goal is to understand the code and customize the
-application rather than submit a copied tutorial project.
-
-## Important scope rule
-
-Keep EventHub general-purpose first. A dedicated **College Events**
-section can be added later. Do not begin advanced features such as QR
-attendance before the basic application is running and understood.
+A full-site UX redesign and real online payment processing—including gateway
+verification, webhooks, and reconciliation—are deferred. Manual admin payment
+status recording is not payment processing. See
+[`docs/DEVELOPMENT_ROADMAP.md`](docs/DEVELOPMENT_ROADMAP.md).

@@ -1,82 +1,71 @@
 # Features and Requirements
 
-## Functional requirements
+This document reflects the current repository implementation. Route details
+are in [`API_CONTRACT.md`](API_CONTRACT.md); operational behavior is in
+[`RESERVATION_POLICY.md`](RESERVATION_POLICY.md).
 
-### Attendee/User
+## Implemented scope
 
--   The system should allow a user to register and log in.
--   The user should be able to browse available events.
--   The user should be able to search for events.
--   The user should be able to filter events by supported fields.
--   The user should be able to view event details.
--   The user should be able to register for an event when registration
-    is permitted.
--   The user should be able to view their registrations.
--   The user should be able to cancel a registration where cancellation
-    is permitted.
--   The user should be able to manage their profile.
+### Visitor and user
 
-### Event Organizer
-
--   The organizer should be able to create an event.
--   The organizer should be able to edit and delete events they are
-    permitted to manage.
--   The organizer should be able to provide event title, description,
-    category, image, date, time, location, capacity, and registration
-    deadline as supported by the final schema.
--   The organizer should be able to view registrations for their events.
--   The organizer should be able to manage participants and view event
-    statistics.
+- Browse events; search titles and filter by category; view event details.
+- Register as a regular user, verify email with an OTP, sign in, and recover a
+  password through an expiring, single-use reset link.
+- Request a booking OTP; book one or multiple tickets with attendee names and
+  optional attendee email snapshots.
+- View only the authenticated user's bookings, download their active ticket
+  PDFs, and cancel eligible own bookings.
 
 ### Admin
 
--   The admin should be able to view and manage users.
--   The admin should be able to view all events.
--   The admin should be able to remove inappropriate events.
--   The admin should be able to manage organizers.
--   The admin should be able to view registrations and platform
-    statistics.
+- Create, update, and delete events; event mutation routes are admin-only.
+- Read all bookings; approve paid-event bookings and choose `paid` or
+  `not_paid` as an admin-recorded payment status; cancel/reject eligible
+  bookings.
+- Designate a verified existing account as Event Staff, assign or remove event
+  assignments, and revoke the staff role.
+- Download tickets explicitly as an admin and check in tickets for any event.
 
-## Event information
+### Event Staff
 
-Planned event fields: - `title` - `description` - `category` - `image` -
-`organizer` - `date` - `time` - `location` - `maximumParticipants` -
-`registrationCount` (if retained in the final model) -
-`registrationDeadline` - `status` - `createdAt`
+- View assigned event projections and scan/check in tickets only for events
+  currently assigned to them.
+- Cannot manage events, bookings, users, payments, or staff assignments.
 
-Possible categories include Concerts, Sports, Conferences, Workshops,
-Technology, Cultural, Business, Education, Entertainment, College
-Events, and Other.
+### Ticketing and operations
 
-## Non-functional requirements
+- Confirmed bookings have one active ticket per attendee. Ticket references
+  are cryptographically random and unique by schema; issuance uses upserts to
+  avoid duplicate attendee tickets.
+- PDFs contain event/attendee details and a QR code encoding only the ticket
+  reference. PDFs are generated in memory and require owner or admin access.
+- The server verifies check-in eligibility and assignment, then conditionally
+  records the actor and time. Concurrent duplicate scans cannot both win the
+  conditional ticket update.
+- Booking confirmation emails can attach one PDF per attendee and use bounded
+  retry state. Other email types use the same Nodemailer utility.
 
-These are proposed quality goals and should be validated during
-implementation: - **Usability:** Pages and forms should be
-understandable for first-time users. - **Security:** Passwords should be
-hashed; protected routes and role checks should be enforced on the
-server. - **Data integrity:** The backend should reject invalid
-registrations and prevent event capacity from being exceeded. -
-**Maintainability:** Keep models, routes, controllers, middleware, and
-configuration organized. - **Reliability:** Show meaningful success and
-error feedback for key actions. - **Compatibility:** Test the
-application in a modern desktop browser and check responsive layouts
-where practical. - **Deployability:** Keep secrets and
-environment-specific configuration out of source control.
+## Booking rules
 
-## Registration rules to implement
+- Quantity is a positive safe integer; attendee data count must match it.
+- Price and total are calculated from the server's Event data; supported
+  currency is INR.
+- New free bookings confirm and issue tickets immediately.
+- New paid bookings reserve seats on creation and expire after 24 hours unless
+  an admin confirms them. Confirmation does not reserve capacity again.
+- Cancellation, admin rejection, and expiry release capacity idempotently and
+  void issued tickets. Legacy bookings without reservation fields keep their
+  compatibility behavior.
+- `paid` means an admin recorded the status; no payment gateway verifies it.
 
-The backend should validate at least: - The event exists. - Registration
-is still open and the deadline has not passed, if a deadline is
-configured. - The event has not reached its maximum capacity. - The user
-is not already registered for the same event. - The requested action is
-allowed for the current user's role.
+## Deferred features
 
-The exact rules should be aligned with the final database schema and
-application behavior.
+- Full-site UX redesign and visual consistency pass.
+- Real online payment gateway integration.
+- Gateway-verified payment status, webhooks, and reconciliation.
+- Refund workflows and other features not present in the current routes.
 
-## Search and filtering ideas
-
-Possible filters: - Category - Date - Location - Free/paid status, if
-price is included in the final model - Upcoming/past status
-
-Only implement filters that are supported by the final event model.
+These are future-version items, not current requirements satisfied by manual
+admin approval. No separate organizer role, registration model, realtime
+transport, ticket event-date restriction, or automatic ticket expiry is
+implemented.

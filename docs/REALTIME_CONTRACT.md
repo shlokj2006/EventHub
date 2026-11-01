@@ -1,13 +1,13 @@
 # Real-Time Contract
 
-> Real-time functionality is not part of the confirmed initial scope.
-> Use this file only if a live-update feature is added.
+> No real-time transport or live-update API is implemented in the current
+> repository. Use this file if a live-update feature is proposed later.
 
 ## Initial status
 
-No real-time transport or event is specified in the current EventHub
-plan. Do not add WebSockets or Socket.IO merely because this file
-exists.
+There is no WebSocket, Socket.IO, or other real-time dependency in the current
+application. Booking, ticket, and check-in state is read from the API and
+database. Do not treat camera scanning as a real-time transport.
 
 ## Potential future use cases
 

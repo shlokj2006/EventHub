@@ -1,7 +1,8 @@
 # B.Tech Project Deliverables Checklist
 
-Use this checklist as work progresses. Mark items complete only when the
-corresponding artifact exists and has been reviewed.
+Use this checklist for academic submission artifacts; it is not a claim that
+the app is deployed or that every submission document has been created. Current
+application scope is described in [`PROJECT_OVERVIEW.md`](PROJECT_OVERVIEW.md).
 
 ## Application
 
@@ -49,14 +50,17 @@ corresponding artifact exists and has been reviewed.
 11. Future scope
 12. Conclusion
 
-## Resume description --- finalize after implementation
+## Resume description
 
 **EventHub --- MERN Event Management Platform**
 
-Developed a full-stack event management and registration platform using
-React, Node.js, Express.js, and MongoDB, implementing JWT
-authentication, role-based access, event CRUD operations, participant
-registration, event capacity management, and organizer dashboards.
+Built a MERN event booking application with verified user accounts,
+administrator-managed events, recoverable seat reservations, multi-attendee
+tickets, PDF/QR check-in, and event-specific staff authorization.
 
-Edit this description to include only features that are actually
-implemented and tested.
+Describe payment approval as manual admin-recorded status, not gateway payment.
+The flowchart images `fc.png` and `dfd.png` are earlier drafts and do not
+reflect the current reservation lifecycle; update them before including them
+in a final academic submission. The Mermaid diagrams in
+`ARCHITECTURE_AND_STRUCTURE.md` and `RESERVATION_POLICY.md` are current source
+documentation.

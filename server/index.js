@@ -3,14 +3,19 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const path = require('node:path');
+const helmet = require('helmet');
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const authRoutes = require('./routes/auth');
 const eventRoutes = require('./routes/events');
 const bookingRoutes = require('./routes/booking');
+const eventStaffRoutes = require('./routes/eventStaff');
+const ticketRoutes = require('./routes/tickets');
 
 const app = express();
+app.use(helmet());
 
 const allowedOrigins = [
   'http://localhost:5173',
@@ -82,6 +87,8 @@ app.use(async (req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/staff', eventStaffRoutes);
+app.use('/api/tickets', ticketRoutes);
 
 // Start the server locally; export the app for Vercel.
 if (require.main === module) {

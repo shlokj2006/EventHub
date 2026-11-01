@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../utils/axios';
 import { FaCalendarAlt, FaMapMarkerAlt, FaSearch, FaRegClock, FaTicketAlt, FaShieldAlt } from 'react-icons/fa';
@@ -7,24 +7,42 @@ const Home = () => {
     const [events, setEvents] = useState([]);
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    const fetchEvents = useCallback(async (searchTerm, signal) => {
+        setLoading(true);
+        setError('');
+        try {
+            const { data } = await api.get('/events', {
+                params: { search: searchTerm },
+                signal,
+            });
+            if (!Array.isArray(data)) {
+                setEvents([]);
+                setError('Events could not be loaded. Please try again.');
+                return;
+            }
+            setEvents(data);
+        } catch {
+            if (!signal?.aborted) {
+                setEvents([]);
+                setError('Events could not be loaded. Please try again.');
+            }
+        } finally {
+            if (!signal?.aborted) setLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
+        const controller = new AbortController();
         const timeoutId = setTimeout(() => {
-            fetchEvents();
+            fetchEvents(search, controller.signal);
         }, 400); // 400ms debounce
-        return () => clearTimeout(timeoutId);
-    }, [search]);
-
-    const fetchEvents = async () => {
-        try {
-            const { data } = await api.get(`/events?search=${search}`);
-            setEvents(data);
-        } catch (error) {
-            console.error('Error fetching events:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+        return () => {
+            clearTimeout(timeoutId);
+            controller.abort();
+        };
+    }, [search, fetchEvents]);
 
     return (
         <div className="flex flex-col min-h-screen">
@@ -86,6 +104,13 @@ const Home = () => {
 
             {loading ? (
                 <div className="text-center py-20 text-xl font-semibold text-gray-600">Loading events...</div>
+            ) : error ? (
+                <div role="alert" className="text-center py-20 text-xl text-red-700">
+                    <p>{error}</p>
+                    <button type="button" onClick={() => fetchEvents(search)} className="mt-4 rounded-lg bg-gray-900 px-5 py-2 text-base font-semibold text-white hover:bg-black">
+                        Try again
+                    </button>
+                </div>
             ) : events.length === 0 ? (
                 <div className="text-center py-20 text-xl text-gray-500">No events found matching your search.</div>
             ) : (
