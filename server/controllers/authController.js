@@ -206,25 +206,7 @@ exports.forgotPassword = async (req, res) => {
             const resetUrl = new URL('/reset-password', baseUrl);
             // A fragment is not sent in HTTP requests or Referer headers, reducing edge-log exposure.
             resetUrl.hash = new URLSearchParams({ token }).toString();
-            const vercelEnv = process.env.VERCEL_ENV === undefined
-                ? 'undefined'
-                : ['preview', 'production'].includes(process.env.VERCEL_ENV)
-                    ? process.env.VERCEL_ENV
-                    : 'other';
-            const sanitizedOrigin = (value) => {
-                try {
-                    return new URL(value).origin;
-                } catch {
-                    return null;
-                }
-            };
-
-            console.info('[password-reset-url-diagnostic]', {
-                frontendUrlConfigured: Boolean(process.env.FRONTEND_URL?.trim()),
-                frontendOrigin: sanitizedOrigin(process.env.FRONTEND_URL),
-                vercelEnv,
-                finalResetOrigin: resetUrl.origin,
-            });
+            
             await sendPasswordResetEmail(user.email, resetUrl.toString());
         }
 

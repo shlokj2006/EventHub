@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const path = require('node:path');
+const helmet = require('helmet');
 
 dotenv.config({ path: path.join(__dirname, '.env') });
 
@@ -14,6 +15,7 @@ const eventStaffRoutes = require('./routes/eventStaff');
 const ticketRoutes = require('./routes/tickets');
 
 const app = express();
+app.use(helmet());
 
 const allowedOrigins = [
   'http://localhost:5173',
