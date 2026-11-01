@@ -9,7 +9,8 @@
 The repository includes hosting configuration in `vercel.json`, but its
 presence does not prove a deployment exists or that a target platform is
 configured. The file routes `/api/*` to the `server/` service, other paths to
-the `client/` service, and schedules booking maintenance every 15 minutes.
+the `client/` service, and schedules booking maintenance daily at midnight UTC
+(5:30 AM IST) at `/api/bookings/maintenance/expire` (`0 0 * * *`).
 
 ## Local development
 
@@ -87,11 +88,15 @@ claiming the code was sent.
 
 The current `vercel.json` declares a `client` service rooted at `client/`, a
 `server` service rooted at `server/`, rewrites `/api/(.*)` to the server and
-other paths to the client, and a 15-minute cron for
-`/api/bookings/maintenance/expire`. Verify the hosting account, deployment
-environment, route behavior, and plan support before relying on that cron.
-For other hosting, configure an authenticated scheduler request with
-`Authorization: Bearer <CRON_SECRET>`.
+other paths to the client, and a Hobby-compatible daily cron
+(`0 0 * * *`, midnight UTC / 5:30 AM IST) for
+`/api/bookings/maintenance/expire`. Paid reservations become expired 24 hours
+after creation if they have not been approved. The daily job performs cleanup
+and releases their reserved seats, so that cleanup may occur up to approximately
+24 hours after the expiry threshold. Admin approval checks the expiry timestamp
+inline and rejects an expired reservation before scheduled cleanup runs. The
+endpoint requires `Authorization: Bearer <CRON_SECRET>`. For other hosting,
+configure an authenticated scheduler request with the same header.
 
 Set deployment environment variables in the hosting provider's protected
 settings. Do not expose `MONGODB_URI`, `JWT_SECRET`, `EMAIL_PASS`, or

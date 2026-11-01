@@ -10,9 +10,23 @@ Rejection, cancellation, and expiry first make the booking non-approvable, then 
 
 ## Expiry
 
-Paid reservation expiry is set by the API to server time plus 24 hours. Admin approval requires `reservationExpiresAt` to be later than the server's current time. The scheduled endpoint also expires overdue pending reservations and reconciles interrupted reserve/release operations.
+Paid reservation expiry is set by the API to server time plus 24 hours. This is
+the approval deadline, not the time when the scheduled cleanup necessarily
+runs. Admin approval checks `reservationExpiresAt` inline and rejects an
+expired reservation even if cleanup has not run yet. The scheduled endpoint
+expires overdue pending reservations, releases their reserved seats, and
+reconciles interrupted reserve/release operations.
 
-The serverless API does not start an in-process timer. `vercel.json` schedules `GET /api/bookings/maintenance/expire` every 15 minutes. Configure a long random `CRON_SECRET` in the deployment environment; Vercel sends it as `Authorization: Bearer ...`. Verify that the deployed Vercel plan supports a 15-minute cron schedule. If this API is deployed somewhere other than Vercel, configure that platform's scheduler to call the same endpoint with the same authorization header. Admin approval also enforces expiry inline, so a delayed scheduler cannot approve an expired reservation.
+The serverless API does not start an in-process timer. On the Vercel Hobby
+plan, `vercel.json` schedules `GET /api/bookings/maintenance/expire` once daily
+at midnight UTC (5:30 AM IST), using `0 0 * * *`. As a result, seat cleanup can
+occur up to approximately 24 hours after the reservation reaches its 24-hour
+expiry threshold. Approval remains blocked from the threshold onward because
+the approval endpoint checks expiry inline. Configure a long random
+`CRON_SECRET` in the deployment environment; Vercel sends it as
+`Authorization: Bearer ...`. If this API is deployed somewhere other than
+Vercel, configure that platform's scheduler to call the same endpoint with the
+same authorization header.
 
 The same protected maintenance request retries eligible confirmed-booking
 email deliveries. Delivery claims use a persisted lease to suppress concurrent
