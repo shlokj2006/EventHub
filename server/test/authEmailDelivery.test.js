@@ -2,9 +2,14 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const Module = require('node:module');
 
-const state = { user: null, otpRecords: [], sent: [], failMail: false };
+const state = { user: null, otpRecords: [], sent: [], failMail: false, hashCalls: 0 };
 const fakeUser = {
-  findOne: async ({ email }) => state.user?.email === email ? state.user : null,
+  findOne: async ({ email }) => {
+    if (!state.user) return null;
+    if (typeof email === 'string') return state.user.email === email ? state.user : null;
+    if (email?.$regex) return new RegExp(email.$regex, email.$options).test(state.user.email) ? state.user : null;
+    return null;
+  },
   create: async (user) => {
     state.user = { ...user, _id: 'user-1', id: 'user-1' };
     return state.user;
@@ -18,7 +23,7 @@ const fakeOtp = {
 };
 const fakeBcrypt = {
   genSalt: async () => 'test-salt',
-  hash: async (password) => `hash:${password}`,
+  hash: async (password) => { state.hashCalls += 1; return `hash:${password}`; },
   compare: async (password, hash) => hash === `hash:${password}`,
 };
 const fakeEmail = {
@@ -57,6 +62,7 @@ const resetState = () => {
   state.otpRecords = [];
   state.sent = [];
   state.failMail = false;
+  state.hashCalls = 0;
 };
 
 test('signup reports delivery failure without exposing provider details and keeps one retryable account', async () => {
@@ -97,6 +103,27 @@ test('login does not report an OTP as sent when the mail transport rejects it', 
   assert.equal(state.sent.length, 0);
 });
 
+test('verified users can log in with normalized email input and receive the existing JWT contract', async () => {
+  resetState();
+  const previousSecret = process.env.JWT_SECRET;
+  process.env.JWT_SECRET = 'test-only-login-secret';
+  state.user = {
+    _id: 'user-verified', id: 'user-verified', email: 'person@example.test', password: 'hash:test-password',
+    role: 'user', isVerified: true, tokenVersion: 0,
+  };
+  try {
+    const response = await call(authController.login, { email: ' PERSON@Example.Test ', password: 'test-password' });
+    assert.equal(response.status, 200);
+    assert.equal(response.body.email, 'person@example.test');
+    assert.equal(response.body.role, 'user');
+    assert.equal(typeof response.body.token, 'string');
+    assert.equal(state.sent.length, 0);
+  } finally {
+    if (previousSecret === undefined) delete process.env.JWT_SECRET;
+    else process.env.JWT_SECRET = previousSecret;
+  }
+});
+
 test('an unverified staff account cannot authenticate with its chosen password before inbox OTP verification', async () => {
   resetState();
   state.user = {
@@ -115,11 +142,44 @@ test('an unverified staff account cannot authenticate with its chosen password b
 test('signup success sends the verification OTP before returning success', async () => {
   resetState();
   const response = await call(authController.register, {
-    name: 'Test User', email: 'person@example.test', password: 'test-password',
+    name: 'Test User', email: ' PERSON@Example.Test ', password: 'test-password',
   });
   assert.equal(response.status, 201);
   assert.match(response.body.message, /OTP sent/i);
   assert.equal(state.sent.length, 1);
   assert.equal(state.sent[0].email, 'person@example.test');
   assert.equal(state.otpRecords[0].otp, state.sent[0].otp);
+  assert.match(state.otpRecords[0].otp, /^\d{6}$/);
+  assert.equal(state.user.email, 'person@example.test');
+});
+
+test('signup rejects malformed and out-of-range input before creating an account or hashing a password', async () => {
+  const invalidBodies = [
+    null,
+    { name: '  ', email: 'person@example.test', password: 'valid-password' },
+    { name: 'x'.repeat(121), email: 'person@example.test', password: 'valid-password' },
+    { name: 'Test User', email: 'not-an-email', password: 'valid-password' },
+    { name: 'Test User', email: 'person@example.test', password: 'short' },
+    { name: 'Test User', email: 'person@example.test', password: 'p'.repeat(129) },
+  ];
+  for (const body of invalidBodies) {
+    resetState();
+    const response = await call(authController.register, body);
+    assert.equal(response.status, 400);
+    assert.equal(state.user, null);
+    assert.equal(state.otpRecords.length, 0);
+    assert.equal(state.sent.length, 0);
+    assert.equal(state.hashCalls, 0);
+  }
+});
+
+test('signup rejects a case-variant duplicate legacy email after normalizing input', async () => {
+  resetState();
+  state.user = { _id: 'legacy-user', email: 'Person@Example.Test' };
+  const response = await call(authController.register, {
+    name: 'Test User', email: 'person@example.test', password: 'valid-password',
+  });
+  assert.equal(response.status, 400);
+  assert.equal(state.user._id, 'legacy-user');
+  assert.equal(state.hashCalls, 0);
 });

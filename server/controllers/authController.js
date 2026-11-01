@@ -5,12 +5,11 @@ const jwt = require('jsonwebtoken');
 const { sendOTPEmail, sendPasswordResetEmail, sendPasswordResetSuccessEmail, safeEmailErrorCode } = require('../utils/email');
 const PasswordReset = require('../models/PasswordReset');
 const { randomUUID } = require('node:crypto');
+const { generateOtp } = require('../utils/otp');
 const {
     RESET_TOKEN_TTL_MS, createResetToken, hashResetToken, isValidResetToken,
     isValidPassword, normalizeEmail, isValidEmail,
 } = require('../utils/passwordReset');
-
-const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 const generateToken = (id, role, tokenVersion = 0) => {
     return jwt.sign({ id, role, tokenVersion }, process.env.JWT_SECRET, { expiresIn: '30d' });
@@ -27,8 +26,23 @@ exports.getCurrentUser = (req, res) => {
 
 exports.register = async (req, res) => {
     try {
-        const { name, email, password, role } = req.body;
+        const body = req.body;
+        if (!body || typeof body !== 'object' || Array.isArray(body)) {
+            return res.status(400).json({ message: 'Registration details are invalid.' });
+        }
+        const name = typeof body.name === 'string' ? body.name.trim() : '';
+        const submittedEmail = typeof body.email === 'string' ? body.email.trim() : '';
+        const email = normalizeEmail(submittedEmail);
+        const password = body.password;
+        if (!name || name.length > 120) return res.status(400).json({ message: 'Name must be between 1 and 120 characters.' });
+        if (!isValidEmail(email)) return res.status(400).json({ message: 'Enter a valid email address.' });
+        if (!isValidPassword(password)) return res.status(400).json({ message: 'Password must be between 8 and 128 characters.' });
+
         let user = await User.findOne({ email });
+        if (!user) {
+            const escaped = email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            user = await User.findOne({ email: { $regex: `^${escaped}$`, $options: 'i' } });
+        }
         if (user) return res.status(400).json({ message: 'User already exists' });
 
         const salt = await bcrypt.genSalt(10);
@@ -42,7 +56,7 @@ exports.register = async (req, res) => {
             isVerified: false
         });
 
-        const otp = generateOTP();
+        const otp = generateOtp();
         await OTP.create({ email, otp, action: 'account_verification' });
         try {
             await sendOTPEmail(email, otp, 'account_verification');
@@ -66,15 +80,29 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
     try {
-        const { email, password } = req.body;
-        const user = await User.findOne({ email });
+        const body = req.body;
+        if (!body || typeof body !== 'object' || Array.isArray(body)) {
+            return res.status(400).json({ message: 'Email and password are required.' });
+        }
+        const submittedEmail = typeof body.email === 'string' ? body.email.trim() : '';
+        const email = normalizeEmail(submittedEmail);
+        const password = body.password;
+        if (!isValidEmail(email) || typeof password !== 'string' || password.length < 1) {
+            return res.status(400).json({ message: 'Email and password are required.' });
+        }
+        let user = await User.findOne({ email });
+        // Keep exact-case access for legacy accounts created before signup
+        // normalized addresses, while new accounts use the normalized lookup.
+        if (!user && submittedEmail && submittedEmail !== email) {
+            user = await User.findOne({ email: submittedEmail });
+        }
         if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
         if (!user.isVerified && user.role !== 'admin') {
-            const otp = generateOTP();
+            const otp = generateOtp();
             await OTP.findOneAndDelete({ email: user.email, action: 'account_verification' });
             await OTP.create({ email: user.email, otp, action: 'account_verification' });
             try {
@@ -105,15 +133,27 @@ exports.login = async (req, res) => {
 
 exports.verifyOTP = async (req, res) => {
     try {
-        const { email, otp } = req.body;
-        const validOTP = await OTP.findOne({ email, otp, action: 'account_verification' });
+        const body = req.body;
+        const email = normalizeEmail(body?.email);
+        const otp = body?.otp;
+        if (!isValidEmail(email) || typeof otp !== 'string' || !/^\d{6}$/.test(otp)) {
+            return res.status(400).json({ message: 'Invalid or expired OTP' });
+        }
+        // findOneAndDelete is a single-document atomic consume: concurrent
+        // verification requests cannot both receive the same OTP document.
+        const unexpiredAfter = new Date(Date.now() - 5 * 60 * 1000);
+        let validOTP = await OTP.findOneAndDelete({ email, otp, action: 'account_verification', createdAt: { $gt: unexpiredAfter } });
+        // Preserve access to legacy accounts whose stored email used mixed case.
+        if (!validOTP && typeof body.email === 'string' && body.email.trim() !== email) {
+            validOTP = await OTP.findOneAndDelete({ email: body.email.trim(), otp, action: 'account_verification', createdAt: { $gt: unexpiredAfter } });
+        }
 
         if (!validOTP) {
             return res.status(400).json({ message: 'Invalid or expired OTP' });
         }
 
-        const user = await User.findOneAndUpdate({ email }, { isVerified: true }, { new: true });
-        await OTP.deleteOne({ _id: validOTP._id }); // Delete OTP after usage
+        const user = await User.findOneAndUpdate({ email: validOTP.email }, { isVerified: true }, { new: true });
+        if (!user) return res.status(400).json({ message: 'Invalid or expired OTP' });
 
         res.json({
             _id: user.id,

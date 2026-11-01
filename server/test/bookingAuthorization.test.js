@@ -1,6 +1,15 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const Module = require('node:module');
+const originalLoad = Module._load;
+Module._load = function loadBookingControllerStub(request, parent, isMain) {
+  if (request === '../controllers/bookingController') {
+    return { bookEvent() {}, confirmBooking() {}, getMyBookings() {}, getAllBookings() {}, cancelBooking() {}, sendBookingOTP() {}, expireReservations() {} };
+  }
+  return originalLoad.call(this, request, parent, isMain);
+};
 const router = require('../routes/booking');
+Module._load = originalLoad;
 const { admin, bookingParticipant } = require('../middleware/auth');
 
 test('booking confirmation and payment-status choice are protected by authentication and admin authorization', () => {
@@ -27,7 +36,7 @@ test('staff booking OTP, create, and cancellation APIs are protected from Event 
     const route = router.stack.find((layer) => layer.route?.path === path && layer.route.methods[method]);
     assert.ok(route, `${method.toUpperCase()} ${path} exists`);
     assert.deepEqual(route.route.stack.slice(0, 2).map((layer) => layer.handle.name), ['protect', 'bookingParticipant']);
-    assert.equal(route.route.stack.length, 3);
+    assert.equal(route.route.stack.length, path === '/:id' ? 3 : 4);
   }
 
   const invoke = (role) => {
