@@ -668,12 +668,14 @@ The project includes important application-level security controls, but it has n
 | Production build | Passed |
 | GitHub main branch deployment | Completed |
 | Vercel Production deployment | Operational |
-| Manual Production smoke testing | Pending |
+| Manual Production smoke testing | Passed |
 
 ---
 
 ## Repository
 
 GitHub: https://github.com/shlokj2006/EventHub
+
+Live link :https://eventhub-one-phi.vercel.app/
 
 **EventHub — Simplifying Event Management, Reservations, and Digital Ticketing.**
