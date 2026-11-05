@@ -1,255 +1,200 @@
-# EventHub
+# EventHub – Event Management, Booking & Digital Ticketing Platform
 
-### Event Management, Booking & Digital Ticketing Platform
+EventHub is a full-stack event management and digital ticketing platform built using the MERN stack. It provides a centralized system for discovering events, managing reservations, issuing digital tickets, and validating event entry through QR-code scanning.
 
-EventHub is a full-stack event management and ticket-booking platform built using the MERN stack. It provides an integrated solution for managing events, handling reservations, issuing digital tickets, validating QR codes, and managing event staff.
+The platform supports three types of users — **Users, Administrators, and Event Staff** — with role-based access and event-specific permissions.
 
-The platform supports users, administrators, and event staff through role-based access control and dedicated workflows.
+**Live Demo:** https://eventhub-one-phi.vercel.app/  
+**GitHub Repository:** https://github.com/shlokj2006/EventHub
 
 ---
 
 ## Table of Contents
 
 - [Overview](#overview)
-- [Features](#features)
-- [Security Features](#security-features)
+- [Key Features](#key-features)
+- [User Roles](#user-roles)
+- [Application Workflow](#application-workflow)
 - [Technology Stack](#technology-stack)
-- [Project Structure](#project-structure)
-- [Application Architecture](#application-architecture)
-- [Booking and Reservation Workflow](#booking-and-reservation-workflow)
-- [Digital Ticketing](#digital-ticketing)
-- [Environment Configuration](#environment-configuration)
-- [Installation and Local Development](#installation-and-local-development)
-- [Testing and Quality Checks](#testing-and-quality-checks)
+- [Project Architecture](#project-architecture)
+- [Security](#security)
+- [Reservation and Ticketing System](#reservation-and-ticketing-system)
+- [Installation and Setup](#installation-and-setup)
+- [Environment Variables](#environment-variables)
+- [Running the Application](#running-the-application)
+- [Testing](#testing)
 - [Deployment](#deployment)
-- [Database Environments](#database-environments)
-- [Important Security Notes](#important-security-notes)
+- [Database Configuration](#database-configuration)
+- [Project Status](#project-status)
 
 ---
 
 ## Overview
 
-EventHub is designed to simplify event organization and attendee management.
+EventHub simplifies the process of organizing events and managing attendee reservations through a single platform.
 
-The platform provides:
+Users can explore available events, make reservations, access their bookings, and receive digital tickets. Administrators can manage events, review reservations, and coordinate event staff. Event staff members receive event-specific access to support attendee verification and entry management.
 
-- Event discovery and event management.
-- User registration and authentication.
-- Booking and reservation management.
-- Booking approval and cancellation.
-- Digital ticket generation.
-- QR-code-based ticket validation.
-- Event-specific staff management.
-- Email-based account verification and password recovery.
-- Administrative controls and role-based permissions.
+The platform also incorporates email-based OTP verification, automated reservation expiry, PDF ticket generation, and QR-code validation to improve reliability and security throughout the booking process.
 
-The application uses React for the frontend, Node.js and Express.js for backend APIs, and MongoDB for persistent data storage.
+---
 
-## Features
+## Key Features
 
-### 1. User Authentication and Accounts
+### 1. Authentication and Account Management
 
 - User registration and login.
 - JWT-based authentication.
 - Role-based access control.
-- Account verification using OTP.
-- Email-based password recovery.
-- Secure password-reset links.
+- Email OTP-based account verification.
+- Secure password hashing using bcrypt.
+- Forgot-password functionality.
+- Password recovery through email reset links.
+- Secure password reset token handling.
 - Session-aware frontend navigation.
-- Input validation during registration and authentication.
+- Input validation and authentication rate limiting.
 
 ### 2. Event Management
 
-- Browse available events.
-- View individual event details.
-- Create and manage events through authorized accounts.
-- Update event information.
-- Delete events through authorized operations.
-- Manage event capacity and availability.
-- Dedicated administrative event-management interface.
+- Browse and discover available events.
+- View detailed event information.
+- Authorized event creation and modification.
+- Event deletion with permission checks.
+- Event capacity and availability management.
+- Administrative event management interface.
 
 ### 3. Booking and Reservation Management
 
-- Book event tickets.
+- Reserve available event seats.
 - Validate booking requests.
-- Support repeat bookings.
-- Verify booking requests through OTP.
-- View booking information.
-- Cancel eligible bookings.
+- OTP verification for applicable booking operations.
+- View personal booking history.
+- Cancel eligible reservations.
 - Administrative booking approval.
-- Reservation expiry for pending paid bookings.
-- Seat reservation and release management.
-- Booking confirmation email workflows.
+- Automatic expiry of pending paid reservations.
+- Automatic release of seats after reservation expiry.
+- Booking confirmation email notifications.
 
-### 4. Digital Tickets
+### 4. Digital Ticketing System
 
-- Automatic digital ticket issuance.
-- Unique ticket references.
-- Attendee-level ticket tracking.
-- Ticket PDF generation.
-- Ticket-related email delivery.
-- Authorized ticket access.
-- QR-code-based ticket validation.
+- Generate digital tickets for confirmed bookings.
+- Create unique ticket references.
+- Associate tickets with bookings and attendees.
+- Generate downloadable PDF tickets.
+- Deliver digital tickets through email.
+- Restrict ticket access to authorized users.
+- Support QR-code-based ticket validation.
 
-### 5. QR Ticket Scanning
+### 5. QR Code Scanning and Entry Validation
 
-EventHub includes a dedicated ticket-scanning interface.
-
-Features include:
-
-- QR-code scanning workflow.
-- Ticket validation through backend APIs.
-- Authorization checks for scanning operations.
-- Ticket verification for event entry.
-
-Only appropriately authorized users should perform ticket-scanning operations.
+- Dedicated ticket-scanning interface.
+- QR-code scanning through the application.
+- Backend ticket validation.
+- Authorization checks before ticket validation.
+- Event-specific entry verification.
+- Attendee tracking through ticket validation.
 
 ### 6. Event Staff Management
 
-Administrators and authorized event managers can manage event-specific staff assignments.
-
-Features include:
-
-- Event staff assignment.
-- Staff management interface.
+- Assign staff members to specific events.
 - Dedicated event staff dashboard.
-- Event-specific permission checks.
-- Protected staff-management operations.
-- Unique user-event assignment constraints.
+- Event-specific staff permissions.
+- Restrict staff access to authorized events.
+- Enforce unique user-event staff assignments.
 
 ### 7. Email Notifications
 
-Email functionality supports:
+EventHub uses Nodemailer for transactional email delivery, including:
 
-- Account verification.
-- Password-reset instructions.
-- Booking confirmation workflows.
+- Account verification OTPs.
+- Password reset links.
+- Booking confirmation notifications.
 - Digital ticket delivery.
-
-Email delivery uses the configured email transport, including Nodemailer.
 
 ---
 
-## Security Features
+## User Roles
 
-Security improvements were introduced across authentication, API handling, booking workflows, and access control.
+The application uses role-based authorization to separate responsibilities and restrict access to protected operations.
 
-### 1. Password Security
+| Role | Responsibilities |
+|---|---|
+| User | Discover events, make bookings, manage reservations, and access digital tickets. |
+| Administrator | Manage events, review bookings, approve eligible reservations, and manage event staff. |
+| Event Staff | Access assigned event information and validate attendee tickets. |
 
-- Passwords are hashed using bcrypt before storage.
-- Password hashes are not returned through authentication API responses.
-- Registration includes password-length validation.
-- Password-reset tokens are stored as hashes.
+Permissions are enforced on the backend rather than relying only on frontend navigation or visibility.
 
-### 2. Secure OTP Generation
+---
 
-OTP generation uses Node.js `crypto.randomInt()` rather than `Math.random()`.
+## Application Workflow
 
-This provides cryptographically secure random-number generation.
+### User Booking Workflow
 
-OTP values are six digits long, including support for leading zeros.
+1. User registers or logs into the application.
+2. User verifies their account when required.
+3. User explores available events.
+4. User selects an event and submits a booking request.
+5. The backend validates the request and checks event availability.
+6. OTP verification is performed where required.
+7. The reservation is processed according to the event's booking policy.
+8. Eligible paid reservations remain pending administrative approval.
+9. Once the booking reaches the required confirmation state, the ticket-generation workflow can proceed.
+10. The user receives the applicable confirmation and digital ticket through email.
 
-### 3. OTP Expiry and Verification
+### Ticket Verification Workflow
 
-- OTPs have a five-minute expiry period.
-- OTP verification consumes codes using atomic database operations.
-- Consumed OTPs cannot normally be reused.
-- Booking OTP handling includes safeguards for known validation failures.
+1. An authorized event staff member accesses the assigned event.
+2. The staff member opens the ticket-scanning interface.
+3. The attendee presents their digital ticket.
+4. The QR code is scanned.
+5. The backend validates the ticket and checks authorization.
+6. The application processes the entry-validation result.
 
-### 4. Authentication Rate Limiting
+### Reservation Expiry Workflow
 
-Rate limiting protects important authentication and OTP endpoints against excessive requests.
-
-The implemented limits use 15-minute windows:
-
-| Operation | Account limit | IP limit |
-|---|---:|---:|
-| Login | 10 | 60 |
-| Signup | 5 | 30 |
-| Booking OTP send | 5 | 30 |
-| OTP verification | 10 | 60 |
-
-Requests exceeding the configured limits receive HTTP `429 Too Many Requests` responses with a `Retry-After` header.
-
-**Implementation limitation:** Rate limits are maintained in application memory. They are best-effort and do not provide shared enforcement across multiple serverless instances or application restarts.
-
-### 5. Role-Based Access Control
-
-- Authentication middleware protects restricted operations.
-- Authorization checks distinguish between user roles.
-- Booking ownership is checked.
-- Event modification and deletion require appropriate permissions.
-- Event staff operations use event-specific permission checks.
-- Ticket-scanning operations are protected.
-
-### 6. HTTP Security Headers
-
-The backend integrates Helmet to apply security-related HTTP response headers.
-
-These include protections such as:
-
-- Content Security Policy.
-- MIME-type sniffing protection.
-- Clickjacking-related frame restrictions.
-- Referrer policy.
-- Cross-origin security headers.
-- HTTP Strict Transport Security header configuration.
-
-### 7. API Information Protection
-
-- Public event responses expose organizer names without unnecessarily exposing organizer email addresses.
-- Password hashes are excluded from user-facing authentication responses.
-- Password-reset token hashes are not exposed.
-- Raw reset tokens are delivered through the intended reset-email workflow rather than API responses.
-
-### 8. Safer Error Handling
-
-Unexpected server errors are logged server-side.
-
-Client responses use generic error messages instead of unnecessarily exposing internal error details or stack traces.
-
-### 9. Protected Reservation Maintenance
-
-The scheduled reservation-expiry endpoint uses `CRON_SECRET` authentication.
-
-Reservation expiry and seat-release operations include checks to prevent repeated seat releases.
+- Eligible paid reservations have a 24-hour administrative approval window.
+- Pending reservations that exceed the approval period are expired.
+- Expired reservations are cancelled.
+- Reserved capacity is released.
+- The maintenance process runs automatically through the configured scheduled deployment task.
+- Approval operations also check reservation expiry.
 
 ---
 
 ## Technology Stack
 
-| Category | Technology |
+| Category | Technologies |
 |---|---|
-| Frontend | React |
-| Frontend build tool | Vite |
-| Backend | Node.js |
-| Backend framework | Express.js |
+| Frontend | React.js, Vite |
+| Styling | CSS |
+| Backend | Node.js, Express.js |
 | Database | MongoDB |
-| Database modelling | Mongoose |
-| Authentication | JSON Web Tokens |
-| Password hashing | bcrypt |
-| HTTP security | Helmet |
-| HTTP client | Axios |
-| Frontend routing | React Router |
-| Email delivery | Nodemailer |
-| Secure OTP generation | Node.js Crypto |
-| Automated testing | Node.js built-in test runner |
-| Code quality | ESLint |
-| Version control | Git |
-| Source hosting | GitHub |
+| ODM | Mongoose |
+| Authentication | JSON Web Tokens (JWT) |
+| Password Security | bcrypt |
+| API Communication | Axios |
+| Routing | React Router |
+| Email Services | Nodemailer |
+| OTP Generation | Node.js Crypto |
+| Security | Helmet, custom rate-limiting middleware |
+| Testing | Node.js Built-in Test Runner |
+| Code Quality | ESLint |
 | Deployment | Vercel |
+| Version Control | Git and GitHub |
 
 ---
 
-## Project Structure
+## Project Architecture
 
-The repository is organized into frontend, backend, documentation, and configuration directories.
+EventHub follows a client-server architecture. The React frontend communicates with the Express backend through REST APIs, while MongoDB stores application data.
+
+### Project Structure
 
 ```text
 EventHub/
 │
 ├── client/
-│   ├── public/
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── Navbar.jsx
@@ -272,8 +217,7 @@ EventHub/
 │   │   │   ├── StaffManagement.jsx
 │   │   │   └── UserDashboard.jsx
 │   │   │
-│   │   ├── utils/
-│   │   └── App.jsx
+│   │   └── ...
 │   │
 │   ├── test/
 │   ├── package.json
@@ -315,188 +259,153 @@ EventHub/
 │   ├── DATABASE_DESIGN.md
 │   ├── DATABASE_SCHEMA.md
 │   ├── DEPLOYMENT.md
-│   ├── RESERVATION_POLICY.md
-│   └── ...
+│   └── RESERVATION_POLICY.md
 │
-├── vercel.json
 └── README.md
 ```
 
-This is a representative structure highlighting the main application components. Additional utility, route, service, test, and documentation files are included in the repository.
+### Backend Architecture
+
+The backend is organized into separate responsibilities:
+
+- **Routes:** Define API endpoints.
+- **Middleware:** Handle authentication, authorization, rate limiting, and request protection.
+- **Controllers:** Process HTTP requests and responses.
+- **Services:** Handle application-level business logic.
+- **Models:** Define MongoDB schemas and database interactions.
+- **Utilities:** Provide reusable helper functionality.
+
+### Database Collections
+
+The application uses MongoDB collections for:
+
+- Users
+- Events
+- Bookings
+- Tickets
+- Event staff assignments
+- Password reset records
 
 ---
 
-## Application Architecture
+## Security
 
-EventHub follows a three-layer MERN architecture.
+Security is implemented across authentication, authorization, booking operations, ticket validation, and HTTP communication.
 
-### Frontend
+### Authentication and Password Protection
 
-The React application provides:
+- Passwords are hashed using bcrypt.
+- Password hashes are excluded from API responses.
+- Password reset tokens are stored as hashes.
+- Password reset tokens are generated and validated securely.
+- Password length validation is applied.
 
-- User interfaces.
-- Authentication and session handling.
-- Event discovery and management.
-- Booking workflows.
-- Digital ticket display.
-- Ticket-scanning interface.
-- Administrative and staff dashboards.
+### OTP Protection
 
-### Backend
+- OTPs are generated using `crypto.randomInt()`.
+- OTPs contain six digits, including possible leading zeros.
+- OTPs expire after five minutes.
+- OTP verification uses atomic consumption to prevent normal reuse.
+- Booking OTP operations include additional safeguards.
 
-The Express.js API provides:
+### Rate Limiting
 
-- Authentication and authorization.
-- Event management.
-- Booking and reservation operations.
-- Ticket generation and verification.
-- Staff management.
-- Email workflows.
-- Reservation maintenance.
+The documented in-memory rate limits include:
 
-### Database
+| Operation | Time Window | Limit |
+|---|---:|---:|
+| Login per account | 15 minutes | 10 |
+| Login per IP | 15 minutes | 60 |
+| Signup per IP | 15 minutes | 30 |
+| Booking OTP send per IP | 15 minutes | 30 |
+| OTP verification per IP | 15 minutes | 60 |
 
-MongoDB stores application data through Mongoose models.
+**Note:** These limits use in-memory storage. They are best-effort protections and are not shared across multiple serverless instances or preserved across restarts.
 
-The main collections include:
+### Authorization and Data Protection
 
-- Users.
-- Events.
-- Bookings.
-- Tickets.
-- Event staff assignments.
-- Password reset records.
+- Role-based access control.
+- Booking ownership verification.
+- Authorization checks for event modification and deletion.
+- Event-specific staff permissions.
+- Ticket-scanning authorization.
+- Sensitive fields excluded from public API responses.
+- Generic client-facing errors and server-side error logging.
 
----
+### HTTP Security
 
-## Booking and Reservation Workflow
+Helmet is used to configure security-related HTTP headers, including:
 
-EventHub implements a reservation workflow designed to manage event capacity safely.
-
-The general workflow is:
-
-1. A user selects an event.
-2. The user submits a booking request.
-3. Required validation and authorization checks are performed.
-4. Booking OTP verification is completed where required.
-5. The reservation system manages available event capacity.
-6. Eligible paid reservations remain reserved while awaiting approval.
-7. Free bookings follow the immediate capacity-consumption workflow.
-8. Authorized administrators can approve pending bookings.
-9. Booking confirmation and ticket issuance workflows follow the applicable booking state.
-
-### Reservation expiry
-
-Pending paid reservations use a 24-hour approval window.
-
-A scheduled maintenance process runs daily at midnight UTC (approximately 5:30 AM IST).
-
-Expired reservations are cancelled and their reserved capacity is released.
-
-The approval logic also checks reservation expiry, preventing late approval.
-
-The scheduled cleanup can occur up to approximately 24 hours after the expiry threshold.
+- Content Security Policy.
+- MIME-sniffing protection.
+- Frame restrictions.
+- Referrer policy.
+- Cross-origin security headers.
+- HTTP Strict Transport Security configuration.
 
 ---
 
-## Digital Ticketing
+## Reservation and Ticketing System
 
-Tickets are generated through the backend ticket issuance workflow.
+EventHub includes reservation lifecycle management to maintain event capacity accurately.
 
-The system defines unique ticket-reference and booking-attendee index constraints.
+### Reservation Policy
 
-Ticket records are associated with bookings and attendees.
+- Free bookings consume available capacity according to the booking workflow.
+- Eligible paid reservations remain pending administrative approval.
+- Pending paid reservations have a 24-hour approval window.
+- Expired reservations are cancelled.
+- Released reservations return their seats to available event capacity.
+- Approval logic checks expiry before processing an approval.
+- Seat-release operations include safeguards against repeated release.
 
-The ticket workflow supports:
+### Digital Tickets
 
-- Ticket creation.
-- Unique ticket identification.
-- PDF generation.
+Tickets are associated with bookings and attendees and use unique ticket references.
+
+The ticketing system supports:
+
+- Ticket generation.
+- PDF ticket creation.
 - Email delivery.
+- Authorized ticket access.
 - QR-code validation.
-- Authorized scanning.
+- Database constraints to protect ticket and attendee uniqueness.
 
 ---
 
-## Environment Configuration
+## Installation and Setup
 
-The backend requires environment variables for database connectivity, authentication, email delivery, and frontend integration.
-
-Create a local environment file using the provided example configuration.
-
-### Backend environment variables
-
-| Variable | Purpose |
-|---|---|
-| `MONGODB_URI` | MongoDB connection string |
-| `JWT_SECRET` | JWT signing secret |
-| `FRONTEND_URL` | Frontend application origin |
-| `EMAIL_USER` | Email account |
-| `EMAIL_PASS` | Email account password or app password |
-| `SMTP_HOST` | Optional custom SMTP hostname |
-| `SMTP_PORT` | Optional SMTP port |
-| `SMTP_SECURE` | Optional SMTP TLS configuration |
-| `CRON_SECRET` | Scheduled maintenance authentication secret |
-| `PORT` | Optional local backend port |
-| `NODE_ENV` | Application environment |
-
-### Frontend environment variable
-
-| Variable | Purpose |
-|---|---|
-| `VITE_API_URL` | Optional backend API base URL; defaults to `/api` |
-
-Use the example files:
-
-- `server/.env.example`
-- `client/.env.example`, if present in the repository.
-
-**Never commit real `.env` files or expose database credentials, JWT secrets, email passwords, or cron secrets.**
-
----
-
-## Installation and Local Development
+Follow these steps to run EventHub locally.
 
 ### Prerequisites
 
-Install:
+Make sure the following are installed:
 
-- Node.js.
-- npm.
-- Git.
-- MongoDB local installation or a MongoDB Atlas development database.
+- Node.js
+- npm
+- MongoDB Atlas account or local MongoDB installation
+- Git
 
-### 1. Clone the repository
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/shlokj2006/EventHub.git
 cd EventHub
 ```
 
-### 2. Install backend dependencies
+### 2. Configure the Backend
 
 ```bash
 cd server
 npm install
 ```
 
-### 3. Configure backend environment
+Create a `.env` file inside the `server` directory using the available `.env.example` file as a reference.
 
-Create a local `server/.env` file based on `server/.env.example`.
+Configure the required backend environment variables before starting the server.
 
-Configure your local development database and the required authentication and email settings.
-
-Do not use Production database credentials for local development.
-
-### 4. Start the backend
-
-```bash
-npm start
-```
-
-Use the backend development script defined in `server/package.json` if you want to run the development server with Nodemon.
-
-### 5. Install frontend dependencies
+### 3. Configure the Frontend
 
 Open another terminal:
 
@@ -505,21 +414,100 @@ cd client
 npm install
 ```
 
-Configure the frontend environment if your local setup requires a custom API URL.
+Create the frontend `.env` file if required, using the available frontend example configuration.
 
-### 6. Start the frontend
+### 4. Start the Application
+
+Start the backend and frontend separately using the commands below.
+
+---
+
+## Environment Variables
+
+### Backend – `server/.env`
+
+| Variable | Description |
+|---|---|
+| `MONGODB_URI` | MongoDB connection string |
+| `JWT_SECRET` | Secret used for JWT signing and verification |
+| `FRONTEND_URL` | Frontend application URL |
+| `EMAIL_USER` | Email account used for sending notifications |
+| `EMAIL_PASS` | Email account password or app password |
+| `SMTP_HOST` | Optional SMTP host |
+| `SMTP_PORT` | Optional SMTP port |
+| `SMTP_SECURE` | Optional SMTP secure connection setting |
+| `CRON_SECRET` | Secret used to protect the reservation maintenance endpoint |
+| `PORT` | Optional backend port |
+| `NODE_ENV` | Application environment |
+
+### Frontend – `client/.env`
+
+| Variable | Description |
+|---|---|
+| `VITE_API_URL` | Optional backend API base URL; defaults to `/api` |
+
+### Example Backend Configuration
+
+```env
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_secure_jwt_secret
+
+FRONTEND_URL=http://localhost:5173
+
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASS=your_email_app_password
+
+CRON_SECRET=your_cron_secret
+
+PORT=5000
+NODE_ENV=development
+```
+
+### Example Frontend Configuration
+
+```env
+VITE_API_URL=http://localhost:5000/api
+```
+
+**Important:** Never commit `.env` files, database credentials, email passwords, JWT secrets, or other private configuration values to GitHub.
+
+---
+
+## Running the Application
+
+### Backend
+
+From the `server` directory:
+
+```bash
+npm start
+```
+
+Use the development script defined in `server/package.json` when running the backend in development mode.
+
+### Frontend
+
+From the `client` directory:
 
 ```bash
 npm run dev
 ```
 
-Vite will display the local frontend URL in the terminal.
+Vite will provide a local development URL, typically:
+
+```text
+http://localhost:5173
+```
+
+The frontend communicates with the backend through the configured API base URL.
 
 ---
 
-## Testing and Quality Checks
+## Testing
 
-### Backend automated tests
+EventHub includes automated tests for backend and frontend functionality.
+
+### Backend Tests
 
 From the `server` directory:
 
@@ -527,11 +515,7 @@ From the `server` directory:
 npm test
 ```
 
-The reported completed development test run passed:
-
-**103 tests passed, 0 failed.**
-
-### Frontend tests
+### Frontend Tests
 
 From the `client` directory:
 
@@ -539,57 +523,50 @@ From the `client` directory:
 node --test
 ```
 
-The reported completed frontend test run passed:
-
-**9 tests passed, 0 failed.**
-
-### Frontend lint
+### Frontend Linting
 
 ```bash
 npm run lint
 ```
 
-### Frontend production build
+### Production Build
 
 ```bash
 npm run build
 ```
 
-The frontend lint and production build passed during the final development verification.
+### Previously Reported Test Results
 
-### Dependency audit
+The repository documentation records the following results from its latest documented verification:
 
-Run:
+| Test Suite | Reported Result |
+|---|---:|
+| Backend tests | 103 passed, 0 failed |
+| Frontend tests | 9 passed, 0 failed |
+| Frontend lint | Passed |
+| Frontend production build | Passed |
 
-```bash
-npm audit
-```
-
-The client audit reported zero vulnerabilities at the time of the final review.
-
-The server audit reported two moderate development-dependency findings associated with Nodemon and minimatch. Review current audit results before future releases.
+These are previously recorded results, not a guarantee that the tests have been rerun against the current checkout.
 
 ---
 
 ## Deployment
 
-EventHub is deployed using Vercel.
+EventHub is deployed using Vercel and connected to the GitHub repository.
 
-The GitHub repository is connected to the Vercel project.
+**Production URL:** https://eventhub-one-phi.vercel.app/
 
-The `main` branch is configured for Production deployment, while the feature branch is used for Preview deployment.
+### Deployment Configuration
 
-### Deployment routing
+- GitHub repository connected to Vercel.
+- `main` branch configured for Production deployments.
+- Feature branches can generate Preview deployments.
+- API requests are routed through the configured Vercel routing setup.
+- Scheduled reservation maintenance is configured through the deployment platform.
 
-The `vercel.json` configuration handles:
+### Reservation Maintenance Cron
 
-- Backend API routing under `/api/*`.
-- Frontend application routing.
-- Scheduled reservation maintenance.
-
-### Cron configuration
-
-The scheduled reservation-maintenance job uses:
+The documented scheduled task uses:
 
 ```json
 {
@@ -598,84 +575,90 @@ The scheduled reservation-maintenance job uses:
 }
 ```
 
-This schedule corresponds to midnight UTC or approximately 5:30 AM IST.
+This runs daily at midnight UTC, approximately 5:30 AM IST.
 
-The endpoint requires the configured `CRON_SECRET`.
+The maintenance endpoint is protected using `CRON_SECRET`.
 
-### Environment separation
-
-Preview and Production use separate MongoDB databases.
-
-See [Database Environments](#database-environments).
+Refer to `docs/DEPLOYMENT.md` for the deployment-specific configuration.
 
 ---
 
-## Database Environments
+## Database Configuration
 
-The project uses separate databases to avoid mixing development, testing, and Production records.
+The project documentation distinguishes between local, Preview, and Production databases.
 
-| Database | Environment |
+| Environment | Database |
 |---|---|
-| `eventhub_dev` | Local development |
-| `eventhub_preview` | Vercel Preview |
-| `eventhub_demo` | Vercel Production |
-| `EVENTHUB` | Previous Production database, preserved separately |
+| Local Development | `eventhub_dev` |
+| Vercel Preview | `eventhub_preview` |
+| Vercel Production | `eventhub_demo` |
+| Previous Production Database | `EVENTHUB` |
 
-The current deployment configuration is intended to use:
+Each deployment environment should use its corresponding database connection string.
 
-- Preview → `eventhub_preview`
-- Production → `eventhub_demo`
-
-The previous `EVENTHUB` database is preserved and is not the active Production database.
-
-**Do not run development seed scripts against Atlas Production.**
-
----
-
-## Important Security Notes
-
-- Keep all secrets in environment variables.
-- Never commit `.env` files.
-- Never expose MongoDB connection strings or JWT secrets.
-- Do not use Production credentials in development environments.
-- Do not weaken authentication or authorization middleware for convenience.
-- Do not run seed scripts against Production.
-- Review database index compatibility before applying schema/index changes.
-- Monitor deployment logs and email delivery.
-- Keep Preview and Production database configurations separate.
-
-The project includes important application-level security controls, but it has not been represented as independently penetration-tested or formally security-certified.
+**Important:** Do not run development seed scripts against the Atlas Production database. Keep development, Preview, and Production data isolated.
 
 ---
 
 ## Project Status
 
-| Area | Status |
+The following features are documented as implemented:
+
+| Feature | Status |
 |---|---|
-| MERN application | Implemented |
-| Event management | Implemented |
-| Authentication | Implemented |
-| Booking and reservations | Implemented |
-| Digital tickets | Implemented |
-| QR ticket scanning | Implemented |
-| Event staff management | Implemented |
+| MERN application architecture | Implemented |
+| User authentication and authorization | Implemented |
+| Email OTP verification | Implemented |
 | Password recovery | Implemented |
-| OTP security improvements | Implemented |
-| API security headers | Implemented |
-| Automated backend tests | Passed |
-| Frontend tests | Passed |
-| Frontend lint | Passed |
-| Production build | Passed |
-| GitHub main branch deployment | Completed |
-| Vercel Production deployment | Operational |
-| Manual Production smoke testing | Passed |
+| Event management | Implemented |
+| Booking and reservation management | Implemented |
+| Reservation expiry and seat release | Implemented |
+| Digital ticket generation | Implemented |
+| PDF ticket delivery | Implemented |
+| QR-code ticket scanning | Implemented |
+| Event staff management | Implemented |
+| Backend automated tests | Implemented |
+| Frontend automated tests | Implemented |
+| Vercel deployment | Operational |
 
 ---
 
-## Repository
+## Documentation
 
-GitHub: https://github.com/shlokj2006/EventHub
+Additional technical documentation is available in the `docs/` directory:
 
-Live link :https://eventhub-one-phi.vercel.app/
+| Document | Purpose |
+|---|---|
+| `API_CONTRACT.md` | API endpoint and request/response documentation |
+| `ARCHITECTURE_AND_STRUCTURE.md` | Application architecture and folder organization |
+| `DATABASE_DESIGN.md` | Database design decisions |
+| `DATABASE_SCHEMA.md` | Database schema details |
+| `DEPLOYMENT.md` | Deployment configuration and instructions |
+| `RESERVATION_POLICY.md` | Booking and reservation lifecycle rules |
 
-**EventHub — Simplifying Event Management, Reservations, and Digital Ticketing.**
+---
+
+## Contributing
+
+Contributions and suggestions are welcome.
+
+1. Fork the repository.
+2. Create a feature branch.
+3. Make your changes.
+4. Run the relevant tests and checks.
+5. Submit a pull request describing your changes.
+
+---
+
+## Author
+
+**Shlok Ashish Jaiswal**
+
+- GitHub: [@shlokj2006](https://github.com/shlokj2006)
+- Project: [EventHub](https://github.com/shlokj2006/EventHub)
+
+---
+
+## License
+
+No license information is specified in the supplied project documentation. Add a `LICENSE` file to the repository if you intend to distribute the project under a particular open-source license.
