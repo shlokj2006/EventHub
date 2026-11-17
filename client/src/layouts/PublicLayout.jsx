@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { Container } from '../components/ui/LayoutPrimitives';
+import Footer from '../components/Footer';
 
 const PublicLayout = () => (
     <div className="flex min-h-screen flex-col bg-page text-text-primary">
@@ -8,6 +9,7 @@ const PublicLayout = () => (
         <Container as="main" className="flex-1 py-8">
             <Outlet />
         </Container>
+        <Footer />
     </div>
 );
 

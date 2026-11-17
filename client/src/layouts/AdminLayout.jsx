@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { Container } from '../components/ui/LayoutPrimitives';
 import { BrandLink, LogoutButton, MenuToggle, NavigationLink } from './LayoutNavigation';
 import useLayoutNavigation from './useLayoutNavigation';
+import Footer from '../components/Footer';
 
 const AdminLayout = () => {
     const { isOpen, close, toggle } = useLayoutNavigation();
@@ -18,7 +19,7 @@ const AdminLayout = () => {
                 <LogoutButton className="eh-button--dark" />
             </aside>
 
-            <div className="flex min-w-0 flex-1 flex-col">
+            <div className="flex min-h-screen min-w-0 flex-1 flex-col">
                 <header className="border-b border-border bg-surface lg:hidden">
                     <Container className="flex min-h-16 flex-wrap items-center justify-between gap-3 py-2">
                         <BrandLink to="/admin" onClick={close} />
@@ -34,6 +35,7 @@ const AdminLayout = () => {
                 <Container as="main" className="w-full flex-1 py-8">
                     <Outlet />
                 </Container>
+                <Footer />
             </div>
         </div>
     );

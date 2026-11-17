@@ -18,6 +18,9 @@ import ResetPassword from './pages/ResetPassword';
 import EventStaffDashboard from './pages/EventStaffDashboard';
 import StaffManagement from './pages/StaffManagement';
 import NotFound from './pages/NotFound';
+import About from './pages/About';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
 
 const RequireAuth = ({ children, role }) => {
     const { user, loading } = useContext(AuthContext);
@@ -42,6 +45,9 @@ function App() {
                     <Route path="/register" element={<Register />} />
                     <Route path="/payment-success" element={<PaymentSuccess />} />
                     <Route path="/payment-failed" element={<PaymentFailed />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/terms" element={<Terms />} />
+                    <Route path="/privacy" element={<Privacy />} />
                     <Route path="*" element={<NotFound />} />
                 </Route>
                 <Route element={<RequireAuth role="user"><UserLayout /></RequireAuth>}>

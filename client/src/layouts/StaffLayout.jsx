@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { Container } from '../components/ui/LayoutPrimitives';
 import { BrandLink, LogoutButton, MenuToggle, NavigationLink } from './LayoutNavigation';
 import useLayoutNavigation from './useLayoutNavigation';
+import Footer from '../components/Footer';
 
 const StaffLayout = () => {
     const { isOpen, close, toggle } = useLayoutNavigation();
@@ -22,6 +23,7 @@ const StaffLayout = () => {
             <Container as="main" className="flex-1 py-8">
                 <Outlet />
             </Container>
+            <Footer />
         </div>
     );
 };
