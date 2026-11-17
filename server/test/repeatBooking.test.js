@@ -19,7 +19,7 @@ const fakeBooking = {
         name: "ValidationError",
       });
     }
-    const record = { _id: `booking-${state.bookings.length + 1}`, ...values };
+    const record = { ...values, _id: `booking-${state.bookings.length + 1}` };
     state.bookings.push(record);
     return record;
   },
@@ -83,9 +83,13 @@ const fakeOtp = {
 };
 const fakeReservations = {
   createCapacityClaim: async ({ bookingId, userId, quantity }) => {
-    if (state.event.availableSeats < quantity) return null;
+    if (state.event.availableSeats < quantity || state.event.isArchived || (state.event.deletionLeaseExpiresAt && state.event.deletionLeaseExpiresAt > new Date())) return null;
     state.event.availableSeats -= quantity;
     return { created: true, claim: { bookingId, userId, quantity } };
+  },
+  releaseCapacityClaim: async ({ quantity }) => {
+    state.event.availableSeats += quantity;
+    return true;
   },
   expireBooking: async () => {},
   expireAndReconcileReservations: async () => ({}),
@@ -239,6 +243,48 @@ test("booking OTP remains available when input or capacity validation fails befo
   assert.equal(state.otp?._id, "otp-valid");
 });
 
+test("archived event rejects a new booking without consuming its OTP", async () => {
+  state.bookings = [];
+  state.issued = [];
+  state.event = {
+    _id: "507f1f77bcf86cd799439011", title: "Archived Event", date: new Date(),
+    ticketPrice: 0, currency: "INR", availableSeats: 2, isArchived: true,
+  };
+  state.otp = {
+    _id: "otp-valid", email: "owner@example.com", otp: "123456",
+    action: "event_booking", createdAt: new Date(),
+  };
+  const result = await invoke({
+    user: { _id: "user-1", id: "user-1", name: "Owner", email: "owner@example.com" },
+    body: { eventId: state.event._id, otp: "123456", quantity: 1, attendees: [{ name: "Friend" }] },
+  });
+  assert.equal(result.statusCode, 409);
+  assert.equal(state.bookings.length, 0);
+  assert.equal(state.event.availableSeats, 2);
+  assert.equal(state.otp?._id, "otp-valid");
+});
+
+test("a booking admission blocked by the deletion gate writes no Booking", async () => {
+  state.bookings = [];
+  state.issued = [];
+  state.event = {
+    _id: "507f1f77bcf86cd799439011", title: "Closing Event", date: new Date(),
+    ticketPrice: 0, currency: "INR", availableSeats: 2,
+    deletionLeaseExpiresAt: new Date(Date.now() + 30_000),
+  };
+  state.otp = {
+    _id: "otp-valid", email: "owner@example.com", otp: "123456",
+    action: "event_booking", createdAt: new Date(),
+  };
+  const result = await invoke({
+    user: { _id: "user-1", id: "user-1", name: "Owner", email: "owner@example.com" },
+    body: { eventId: state.event._id, otp: "123456", quantity: 1, attendees: [{ name: "Friend" }] },
+  });
+  assert.equal(result.statusCode, 409);
+  assert.equal(state.bookings.length, 0);
+  assert.equal(state.event.availableSeats, 2);
+});
+
 test("expired booking OTPs cannot create bookings even if the TTL monitor has not removed them yet", async () => {
   state.bookings = [];
   state.issued = [];
@@ -312,6 +358,7 @@ test("known booking validation failure restores the still-live OTP for a retry",
   const failed = await invoke(req);
   assert.equal(failed.statusCode, 400);
   assert.equal(state.otp?.otp, "123456");
+  assert.equal(state.event.availableSeats, 1);
   state.failBookingCreate = false;
   const retried = await invoke(req);
   assert.equal(retried.statusCode, 201);

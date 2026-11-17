@@ -36,11 +36,23 @@ counters are not shared across serverless instances.
 
 | Method and path | Access | Request | Success / behavior |
 |---|---|---|---|
-| `GET /` | Public; optional session validated | Optional query `category`, `search` | Bare array of events; `search` matches title case-insensitively. Event Staff list is assignment-scoped and projected. |
-| `GET /:id` | Public; optional session validated | MongoDB event ID | Event document or 404. Event Staff can read only assigned events. |
+| `GET /` | Public; optional session validated | Optional query `category`, `search` | Bare array of active events; `search` matches title case-insensitively. Admins can also list archived events. Event Staff list is assignment-scoped and projected. |
+| `GET /:id` | Public; optional session validated | MongoDB event ID | Event document or 404. Archived events return 404 to non-admins; admins can read them. Event Staff can read only assigned active events. |
 | `POST /` | Admin | `{title,description,date,location,category,totalSeats,ticketPrice?,image?}` | 201 event; `availableSeats` starts at `totalSeats`, missing/falsey price defaults to 0. |
 | `PUT /:id` | Admin | Editable fields: `title,description,date,location,category,image,ticketPrice` | Updated event; 400 invalid ID/details, 404 missing event. Capacity is not editable here. |
-| `DELETE /:id` | Admin | MongoDB event ID | `{message}` or 404. |
+| `PATCH /:id/archive` | Admin | No body | 200 Event document with `isArchived: true`; 400 invalid ID, 404 missing event. Preserves bookings and tickets. |
+| `PATCH /:id/restore` | Admin | No body | 200 Event document with `isArchived: false`; 400 invalid ID, 404 missing event. Preserves bookings and tickets. |
+| `DELETE /:id` | Admin | MongoDB event ID | 200 `{message:"Event deleted successfully"}`; 400 invalid ID, 404 missing event, 409 if any booking references it, capacity claims remain, or another deletion is in progress. |
+
+Archive and restore are registered with `protect` and `admin` middleware; auth
+failures return 401 or 403 and unexpected controller failures return 500.
+Public listing and detail use optional authentication; only an authenticated
+admin sees archived events. Booking admission rejects archived events with
+409. Existing booking approval and reservation reconciliation remain allowed
+to use archived events. Permanent deletion uses a short tokenized Event lease
+and conditional delete; it does not delete or alter related Booking or Ticket
+records. It is permitted only when no Booking document references the event;
+unexpected controller failures return 500.
 
 There is no organizer role; event mutation routes require the `admin` role.
 

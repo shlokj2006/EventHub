@@ -131,7 +131,7 @@ test('the public event list is scoped to assigned events for an authenticated st
     try {
         const res = response();
         await getEvents({ user: { _id: 'staff-1', role: 'event_staff' }, query: { category: 'music' } }, res);
-        assert.deepEqual(query, { _id: { $in: ['assigned-1'] }, category: 'music' });
+        assert.deepEqual(query, { isArchived: { $ne: true }, _id: { $in: ['assigned-1'] }, category: 'music' });
         assert.doesNotMatch(projection, /\b(createdBy|bookings|attendees|tickets)\b/i);
         assert.deepEqual(res.body(), [{ _id: 'assigned-1' }]);
     } finally {

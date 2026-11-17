@@ -108,6 +108,16 @@ test('admin approval stores each permitted payment choice and issues tickets aft
   }
 });
 
+test('a pending booking with a reserved claim remains approvable after its event is archived', async () => {
+  state.booking = pendingBooking({ eventId: { _id: '64b000000000000000000003', title: 'Paid Event', ticketPrice: 20, isArchived: true } });
+  state.selectedStatuses = [];
+  state.issued = 0;
+  const result = await invoke('paid');
+  assert.equal(result.status, 200);
+  assert.equal(result.body.booking.status, 'confirmed');
+  assert.equal(state.issued, 1);
+});
+
 test('confirmation requires a valid explicit choice and cannot approve an expired reservation', async () => {
   state.booking = pendingBooking();
   assert.equal((await invoke(undefined)).status, 400);

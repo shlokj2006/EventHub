@@ -1,4 +1,5 @@
 const Booking = require("../models/Booking");
+const mongoose = require("mongoose");
 const Event = require("../models/Event");
 const Ticket = require("../models/Ticket");
 const OTP = require("../models/OTP");
@@ -20,6 +21,7 @@ const {
   approvePaidBooking,
   transitionBookingCancellation,
   releaseBookingCapacity,
+  releaseCapacityClaim,
   expireBooking,
   reconcileReservingBooking,
   expireAndReconcileReservations,
@@ -139,6 +141,9 @@ exports.bookEvent = async (req, res) => {
 
     const event = await Event.findById(eventId);
     if (!event) return res.status(404).json({ message: "Event not found" });
+    if (event.isArchived) {
+      return res.status(409).json({ message: "This event is archived and is no longer available for booking." });
+    }
     if (!hasCapacity(event.availableSeats, quantity)) {
       return res.status(400).json({ message: "Not enough seats available" });
     }
@@ -160,8 +165,8 @@ exports.bookEvent = async (req, res) => {
     const reservationExpiresAt = isPaid
       ? new Date(now.getTime() + RESERVATION_HOURS * 60 * 60 * 1000)
       : undefined;
-    // Leave the OTP usable for all validation and availability failures.
-    // Consume it atomically immediately before creating the booking.
+    // Leave the OTP usable for validation failures. Consume it atomically
+    // immediately before claiming capacity for this booking.
     const consumedOTP = await OTP.findOneAndDelete({
       _id: validOTP._id,
       email: req.user.email,
@@ -175,9 +180,41 @@ exports.bookEvent = async (req, res) => {
         .json({ message: "Invalid or expired OTP for booking" });
     bookingOtpConsumed = true;
 
+    const bookingId = new mongoose.Types.ObjectId();
+    let claim;
+    try {
+      claim = await createCapacityClaim({
+        eventId,
+        bookingId,
+        userId: req.user.id,
+        quantity,
+        state: isPaid ? "reserved" : "consumed",
+        expiresAt: reservationExpiresAt,
+      });
+    } catch (error) {
+      // The Event claim operation is idempotent if its result was ambiguous.
+      // A claim without a Booking is released by capacity reconciliation.
+      return res
+        .status(503)
+        .json({
+          message:
+            "Booking is being recovered; check your bookings before retrying. If no booking appears, request a new booking code.",
+        });
+    }
+
+    if (!claim) {
+      return res
+        .status(409)
+        .json({
+          message:
+            "Capacity is unavailable or an active booking already exists. Request a new booking code before retrying.",
+        });
+    }
+
     let booking;
     try {
       booking = await Booking.create({
+        _id: bookingId,
         userId: req.user.id,
         eventId,
         eventTitle: event.title,
@@ -193,22 +230,27 @@ exports.bookEvent = async (req, res) => {
         amount,
       });
     } catch (error) {
-      // Mongoose validation/cast errors happen before an insert is sent;
-      // restore this still-live code so a correctable request can retry.
-      // For network/ambiguous failures, do not restore: a booking may
-      // have been written. The user can check history and request a new OTP.
+      // Ambiguous writes keep the claim for reconciliation. Known validation
+      // failures release capacity before restoring the still-live one-time code.
       if (["ValidationError", "CastError"].includes(error.name)) {
+        try {
+          await releaseCapacityClaim({ eventId, bookingId, quantity });
+        } catch (releaseError) {
+          console.error("Booking capacity release failed:", releaseError);
+          return res.status(503).json({
+            message: "Booking could not be completed. Retry after checking your bookings.",
+          });
+        }
+
         const createdAt = consumedOTP.createdAt
           ? new Date(consumedOTP.createdAt)
           : now;
-
         if (createdAt.getTime() + 5 * 60 * 1000 > Date.now()) {
           const newerOTPExists = await OTP.exists({
             email: consumedOTP.email,
             action: consumedOTP.action,
             createdAt: { $gt: createdAt },
           });
-
           if (!newerOTPExists) {
             await OTP.create({
               email: consumedOTP.email,
@@ -216,7 +258,6 @@ exports.bookEvent = async (req, res) => {
               action: consumedOTP.action,
               createdAt,
             });
-
             bookingOtpRestored = true;
           }
         }
@@ -224,46 +265,6 @@ exports.bookEvent = async (req, res) => {
       throw error;
     }
     bookingCreated = true;
-
-    let claim;
-    try {
-      claim = await createCapacityClaim({
-        eventId,
-        bookingId: booking._id,
-        userId: req.user.id,
-        quantity,
-        state: isPaid ? "reserved" : "consumed",
-        expiresAt: reservationExpiresAt,
-      });
-    } catch (error) {
-      // Leave the durable `reserving` record for the scheduled reconciler;
-      // the Event claim operation is idempotent if its result was ambiguous.
-      return res
-        .status(503)
-        .json({
-          message:
-            "Booking is being recovered; check your bookings before retrying. If no booking appears, request a new booking code.",
-        });
-    }
-
-    if (!claim) {
-      await Booking.updateOne(
-        { _id: booking._id, status: "pending", capacityState: "reserving" },
-        {
-          $set: {
-            status: "cancelled",
-            capacityState: "released",
-            cancellationReason: "rejected",
-          },
-        },
-      );
-      return res
-        .status(409)
-        .json({
-          message:
-            "Capacity is unavailable or an active booking already exists. Request a new booking code before retrying.",
-        });
-    }
 
     const finalBooking = await Booking.findOneAndUpdate(
       { _id: booking._id, status: "pending", capacityState: "reserving" },
@@ -390,6 +391,8 @@ exports.confirmBooking = async (req, res) => {
         userId: booking.userId._id,
         quantity,
         state: "consumed",
+        allowArchived: true,
+        allowDeleting: true,
       });
       if (!claim) {
         return res

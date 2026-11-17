@@ -23,9 +23,20 @@ that a syntax check is a lint run.
 Automated coverage currently includes booking validation/reservation races,
 ownership and authorization, ticket issuance and check-in, scanner result
 mapping, password reset, mail transport mocks, event staff permissions, and
-seed/migration safety guards. Most backend controller tests use mocks. They do
-not replace a MongoDB integration test or establish indexes on any database.
-Mailer tests do not send real SMTP messages.
+seed/migration safety guards. Event lifecycle tests cover mocked lease
+acquisition/release, deletion conflicts, stale-token fencing, archived event
+visibility, and archive/restore behavior. Booking tests cover archived-event
+approval and reservation reconciliation. Most backend controller tests use
+mocks. They do not replace a MongoDB integration test or establish indexes on
+any database. Mailer tests do not send real SMTP messages. Tests are not
+production verification.
+
+### Stage 2.1 review run
+
+On 2026-11-17, these focused backend suites passed: `eventLifecycle.test.js`,
+`bookingReservations.test.js`, `bookingApprovalController.test.js`, and
+`ticketIssuance.test.js` (41 tests, 0 failures). They use mocks and synthetic
+data; this run did not connect to MongoDB or verify production concurrency.
 
 ## Manual test setup
 

@@ -60,8 +60,8 @@ sequenceDiagram
   U->>A: POST /api/bookings/send-otp
   A-->>U: OTP email attempt result
   U->>A: POST /api/bookings (event, OTP, quantity, attendees)
+  A->>E: Atomic seat decrement + capacity claim (admission gate)
   A->>B: Create pending/reserving booking
-  A->>E: Atomic seat decrement + capacity claim
   alt Paid event
     A->>B: Mark reserved; expiry = now + 24 hours
     A-->>U: Pending booking
@@ -76,6 +76,14 @@ sequenceDiagram
 Paid approval issues tickets and emails only after confirmation. Rejection,
 cancellation, expiry, and interrupted writes are reconciled through the
 capacity-claim workflow described in [`RESERVATION_POLICY.md`](RESERVATION_POLICY.md).
+
+Event archive and restore are admin-only soft lifecycle updates. Public event
+queries hide archived events and new booking admission rejects them; existing
+bookings and tickets remain intact. Permanent deletion obtains a tokenized
+30-second lease, checks for any referencing Booking and remaining capacity
+claims, then conditionally deletes only while its lease token is current. See
+[`API_CONTRACT.md`](API_CONTRACT.md) for endpoint contracts and
+[`RESERVATION_POLICY.md`](RESERVATION_POLICY.md) for race and recovery limits.
 
 ## Authorization boundaries
 

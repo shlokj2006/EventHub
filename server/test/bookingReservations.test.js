@@ -28,25 +28,33 @@ const withStubs = async (model, stubs, run) => {
   }
 };
 
-const makeEventStore = ({ availableSeats = 5, claims = [], releaseIds = [] } = {}) => ({
+const makeEventStore = ({ availableSeats = 5, claims = [], releaseIds = [], isArchived = false, deletionLeaseToken = null, deletionLeaseExpiresAt = null } = {}) => ({
   _id: 'event-1',
   availableSeats,
   capacityClaims: claims,
   legacyCapacityReleaseIds: releaseIds,
+  isArchived,
+  deletionLeaseExpiresAt,
+  deletionLeaseToken,
 });
 
-const claimModelStubs = (event) => ({
+const claimModelStubs = (event, { allowArchived = false, allowDeleting = false } = {}) => ({
   findOneAndUpdate: async (filter, update) => {
     const bookingId = update.$push?.capacityClaims?.bookingId;
     if (!bookingId) return null;
     const exists = event.capacityClaims.some((claim) => claim.bookingId === bookingId);
     const quantity = -update.$inc.availableSeats;
-    assert.deepEqual(filter, {
-      _id: event._id,
-      availableSeats: { $gte: quantity },
-      'capacityClaims.bookingId': { $ne: bookingId },
-    });
-    if (exists || event.availableSeats < quantity) return null;
+    assert.equal(filter._id, event._id);
+    assert.deepEqual(filter.isArchived, allowArchived ? undefined : { $ne: true });
+    assert.equal(Boolean(filter.$or), !allowDeleting);
+    assert.deepEqual(filter.availableSeats, { $gte: quantity });
+    assert.deepEqual(filter['capacityClaims.bookingId'], { $ne: bookingId });
+    const deletionLeaseActive = event.deletionLeaseExpiresAt && event.deletionLeaseExpiresAt > new Date();
+    if (exists || event.availableSeats < quantity || (event.isArchived && 'isArchived' in filter) || (deletionLeaseActive && filter.$or)) return null;
+    if (update.$unset) {
+      event.deletionLeaseToken = null;
+      event.deletionLeaseExpiresAt = null;
+    }
     event.availableSeats += update.$inc.availableSeats;
     event.capacityClaims.push(update.$push.capacityClaims);
     return event;
@@ -74,6 +82,56 @@ test('paid booking claims seats atomically at creation', async () => {
     assert.equal(event.availableSeats, 3);
     assert.equal(event.capacityClaims[0].state, 'reserved');
     assert.equal(event.capacityClaims[0].expiresAt, expiry);
+  });
+});
+
+test('new capacity claims are rejected for archived events', async () => {
+  const event = makeEventStore({ isArchived: true });
+  await withStubs(Event, claimModelStubs(event), async () => {
+    const result = await createCapacityClaim({ eventId: event._id, bookingId: 'b-archived', userId: 'u', quantity: 1, state: 'reserved' });
+    assert.equal(result, null);
+    assert.equal(event.availableSeats, 5);
+    assert.equal(event.capacityClaims.length, 0);
+  });
+});
+
+test('an existing reserving booking is reconciled after its event is archived', async () => {
+  const event = makeEventStore({ isArchived: true });
+  const booking = {
+    _id: 'existing-reservation', eventId: event._id, userId: 'u1', quantity: 2,
+    status: 'pending', capacityState: 'reserving', reservationExpiresAt: new Date(Date.now() + 60_000),
+  };
+  await withStubs(Event, claimModelStubs(event, { allowArchived: true, allowDeleting: true }), async () =>
+    withStubs(Booking, {
+      findOneAndUpdate: async (_filter, update) => { Object.assign(booking, update.$set); return booking; },
+      updateOne: async (_filter, update) => { Object.assign(booking, update.$set); return { acknowledged: true }; },
+    }, async () => {
+      assert.equal(await reconcileReservingBooking(booking), true);
+      assert.equal(event.availableSeats, 3);
+      assert.equal(event.capacityClaims.length, 1);
+      assert.equal(booking.capacityState, 'reserved');
+      assert.equal(booking.status, 'pending');
+    }));
+});
+
+test('new capacity claims are rejected while a deletion lease is active', async () => {
+  const event = makeEventStore({ deletionLeaseExpiresAt: new Date(Date.now() + 30_000) });
+  await withStubs(Event, claimModelStubs(event), async () => {
+    const result = await createCapacityClaim({ eventId: event._id, bookingId: 'b-deleting', userId: 'u', quantity: 1, state: 'reserved' });
+    assert.equal(result, null);
+    assert.equal(event.availableSeats, 5);
+    assert.equal(event.capacityClaims.length, 0);
+  });
+});
+
+test('expired deletion leases do not permanently block booking admission', async () => {
+  const event = makeEventStore({ deletionLeaseToken: 'stale-token', deletionLeaseExpiresAt: new Date(Date.now() - 1) });
+  await withStubs(Event, claimModelStubs(event), async () => {
+    const result = await createCapacityClaim({ eventId: event._id, bookingId: 'b-after-lease', userId: 'u', quantity: 1, state: 'reserved' });
+    assert.equal(result.created, true);
+    assert.equal(event.availableSeats, 4);
+    assert.equal(event.deletionLeaseToken, null);
+    assert.equal(event.deletionLeaseExpiresAt, null);
   });
 });
 

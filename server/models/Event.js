@@ -2,6 +2,9 @@ const mongoose = require("mongoose");
 
 const eventSchema = new mongoose.Schema(
   {
+    isArchived: { type: Boolean, default: false },
+    deletionLeaseToken: { type: String, select: false },
+    deletionLeaseExpiresAt: { type: Date, select: false },
     title: {
          type: String, required: true },
 

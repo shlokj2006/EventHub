@@ -28,7 +28,7 @@ Mongoose's default collection names are `users`, `events`, `bookings`,
 | Model | Important fields and semantics |
 |---|---|
 | `User` | `name`, unique `email`, bcrypt `password`, `role` (`user`, `event_staff`, `admin`), `isVerified`, `tokenVersion`, optional `passwordChangedAt`, and hidden `passwordResetOperationId`; timestamps. Public registration always assigns `user`. |
-| `Event` | `title`, `description`, `date`, `location`, `category`, integer `totalSeats`/`availableSeats`, `ticketPrice` (nonnegative amount with at most two decimal places), INR-only `currency`, optional `image`, `createdBy`, embedded `capacityClaims`, and legacy capacity-release markers; timestamps. |
+| `Event` | `title`, `description`, `date`, `location`, `category`, integer `totalSeats`/`availableSeats`, `ticketPrice` (nonnegative amount with at most two decimal places), INR-only `currency`, optional `image`, `createdBy`, `isArchived` (Boolean, default `false`), hidden `deletionLeaseToken` and `deletionLeaseExpiresAt` (internal 30-second deletion gate), embedded `capacityClaims`, and legacy capacity-release markers; timestamps. |
 | `Booking` | `userId`, `eventId`, optional event snapshots and `bookingReference`, integer `quantity` (legacy default 1), `unitPrice`, INR `currency`, total `amount`, `status` (`pending`, `confirmed`, `cancelled`), `paymentStatus` (`paid`, `not_paid`), `capacityState`, expiry/reason, attendee snapshots, confirmation-email delivery state, and timestamps. Legacy documents may not contain the newer snapshots or reference. |
 | `Ticket` | Unique random `ticketReference`, booking/event/user references, `attendeeIndex`, attendee and event snapshots, `unitPrice`, currency, `status` (`active`, `void`), `issuedAt`, nullable `checkedInAt` and `checkedInBy`, timestamps. No ticket expiration date is modeled. |
 | `EventStaffAssignment` | Required `userId`, `eventId`, and `assignedBy`, plus timestamps. One assignment links one staff account to one event. |
@@ -39,6 +39,17 @@ There is no separate `Registration` model. A `Booking` is the registration
 record. Attendee emails are optional snapshots, not the notification
 recipient: booking confirmation mail is sent only to the verified booking
 owner's stored account email.
+
+`Event.capacityClaims` defaults to an empty array. Each embedded claim stores
+`bookingId`, `userId`, `quantity`, `state` (`reserved` or `consumed`), and an
+optional expiry. These Event-document claims coordinate seat allocation,
+duplicate active booking protection, and deletion admission. The optional
+`legacyCapacityReleaseIds` array stores idempotency markers during legacy
+booking cancellation. The deletion lease fields are excluded from normal
+Mongoose selection (`select: false`); the random token fences lease cleanup and
+final deletion, and the expiry permits recovery after process failure. These
+are application schema declarations; this document does not assert live
+database values or index state.
 
 ## Schema-declared indexes
 

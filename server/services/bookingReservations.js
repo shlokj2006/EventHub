@@ -2,19 +2,31 @@ const Booking = require('../models/Booking');
 const Event = require('../models/Event');
 const { invalidateTicketsForBooking } = require('./ticketIssuance');
 
-const createCapacityClaim = async ({ eventId, bookingId, userId, quantity, state, expiresAt }) => {
+const createCapacityClaim = async ({ eventId, bookingId, userId, quantity, state, expiresAt, allowArchived = false, allowDeleting = false }) => {
   const claim = { bookingId, userId, quantity, state };
   if (expiresAt) claim.expiresAt = expiresAt;
 
+  const admissionGate = allowDeleting ? {} : {
+    $or: [
+      { deletionLeaseExpiresAt: { $exists: false } },
+      { deletionLeaseExpiresAt: null },
+      { deletionLeaseExpiresAt: { $lte: new Date() } },
+    ],
+  };
   const event = await Event.findOneAndUpdate(
     {
       _id: eventId,
+      ...(allowArchived ? {} : { isArchived: { $ne: true } }),
+      ...admissionGate,
       availableSeats: { $gte: quantity },
       'capacityClaims.bookingId': { $ne: bookingId },
     },
     {
       $inc: { availableSeats: -quantity },
       $push: { capacityClaims: claim },
+      ...(allowDeleting ? {} : {
+        $unset: { deletionLeaseToken: 1, deletionLeaseExpiresAt: 1 },
+      }),
     },
     { new: true },
   );
@@ -155,6 +167,8 @@ const reconcileReservingBooking = async (booking) => {
     quantity: Number.isSafeInteger(booking.quantity) && booking.quantity > 0 ? booking.quantity : 1,
     state: claimState,
     expiresAt: booking.reservationExpiresAt,
+    allowArchived: true,
+    allowDeleting: true,
   });
 
   if (!claim) {

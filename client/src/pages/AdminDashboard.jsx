@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext, useCallback } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import api from '../utils/axios';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const AdminDashboard = () => {
     const { user } = useContext(AuthContext);
@@ -13,6 +13,9 @@ const AdminDashboard = () => {
     const [eventsError, setEventsError] = useState('');
     const [bookingsError, setBookingsError] = useState('');
     const [approvingBookingId, setApprovingBookingId] = useState(null);
+    const [editingEventId, setEditingEventId] = useState(null);
+    const [eventNotice, setEventNotice] = useState('');
+    const [eventNoticeError, setEventNoticeError] = useState(false);
 
     const [showEventForm, setShowEventForm] = useState(false);
     const [formData, setFormData] = useState({
@@ -45,25 +48,81 @@ const AdminDashboard = () => {
         void Promise.resolve().then(fetchData);
     }, [user, navigate, fetchData]);
 
-    const handleCreateEvent = async (e) => {
+    const resetEventForm = () => {
+        setShowEventForm(false);
+        setEditingEventId(null);
+        setFormData({ title: '', description: '', date: '', location: '', category: '', totalSeats: '', ticketPrice: '', image: '' });
+    };
+
+    const handleSaveEvent = async (e) => {
         e.preventDefault();
         try {
-            await api.post('/events', formData);
-            setShowEventForm(false);
-            setFormData({ title: '', description: '', date: '', location: '', category: '', totalSeats: '', ticketPrice: '', image: '' });
-            fetchData();
+            if (editingEventId) {
+                const editableFields = { ...formData };
+                delete editableFields.totalSeats;
+                await api.put(`/events/${editingEventId}`, editableFields);
+                setEventNotice('Event updated successfully.');
+            } else {
+                await api.post('/events', formData);
+                setEventNotice('Event created successfully.');
+            }
+            setEventNoticeError(false);
+            resetEventForm();
+            await fetchData();
         } catch (error) {
-            alert(error.response?.data?.message || 'Error creating event');
+            setEventNotice(error.response?.data?.message || `Error ${editingEventId ? 'updating' : 'creating'} event.`);
+            setEventNoticeError(true);
+        }
+    };
+
+    const handleEditEvent = (event) => {
+        setEditingEventId(event._id);
+        setFormData({
+            title: event.title || '', description: event.description || '',
+            date: new Date(event.date).toISOString().slice(0, 10), location: event.location || '',
+            category: event.category || '', totalSeats: event.totalSeats ?? '',
+            ticketPrice: event.ticketPrice ?? '', image: event.image || '',
+        });
+        setShowEventForm(true);
+        setEventNotice('');
+        setEventNoticeError(false);
+    };
+
+    const handleArchiveEvent = async (event) => {
+        if (!window.confirm(`Archive “${event.title}”? It will disappear from public listings. Existing bookings and tickets will remain preserved.`)) return;
+        try {
+            await api.patch(`/events/${event._id}/archive`);
+            setEventNotice('Event archived. Existing bookings and tickets are preserved.');
+            setEventNoticeError(false);
+            await fetchData();
+        } catch (error) {
+            setEventNotice(error.response?.data?.message || 'Unable to archive event.');
+            setEventNoticeError(true);
+        }
+    };
+
+    const handleRestoreEvent = async (event) => {
+        try {
+            await api.patch(`/events/${event._id}/restore`);
+            setEventNotice('Event restored successfully.');
+            setEventNoticeError(false);
+            await fetchData();
+        } catch (error) {
+            setEventNotice(error.response?.data?.message || 'Unable to restore event.');
+            setEventNoticeError(true);
         }
     };
 
     const handleDeleteEvent = async (id) => {
-        if (window.confirm('Are you sure you want to delete this event?')) {
+        if (window.confirm('Permanently delete this event? Events with any bookings must be archived instead.')) {
             try {
                 await api.delete(`/events/${id}`);
-                fetchData();
-            } catch {
-                alert('Error deleting event');
+                setEventNotice('Event permanently deleted.');
+                setEventNoticeError(false);
+                await fetchData();
+            } catch (error) {
+                setEventNotice(error.response?.data?.message || 'Unable to delete event. If it has bookings, archive it instead.');
+                setEventNoticeError(true);
             }
         }
     };
@@ -99,15 +158,17 @@ const AdminDashboard = () => {
                     <p className="text-gray-300">Manage events and manually confirm bookings.</p>
                 </div>
                 <button
-                    onClick={() => setShowEventForm(!showEventForm)}
+                    onClick={() => { if (showEventForm) resetEventForm(); else { setEditingEventId(null); setShowEventForm(true); } }}
                     className="w-full md:w-auto bg-white text-black font-bold py-3 px-6 rounded-lg hover:bg-gray-100 transition shadow-md"
                 >
-                    {showEventForm ? 'Cancel Creation' : '+ Create New Event'}
+                    {showEventForm ? 'Cancel' : '+ Create New Event'}
                 </button>
                 <button onClick={() => navigate('/admin/staff')} className="w-full md:w-auto bg-gray-700 text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-600 transition shadow-md">
                     Manage Event Staff
                 </button>
             </div>
+
+            {eventNotice && <p role={eventNoticeError ? 'alert' : 'status'} className={`mb-5 rounded-lg p-4 ${eventNoticeError ? 'bg-red-50 text-red-800' : 'bg-blue-50 text-blue-800'}`}>{eventNotice}</p>}
 
             {/* Admin Stats Row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -136,13 +197,13 @@ const AdminDashboard = () => {
 
             {showEventForm && (
                 <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mb-8 animation-slideDown">
-                    <h2 className="text-2xl font-bold mb-6 text-gray-800">Create New Event</h2>
-                    <form onSubmit={handleCreateEvent} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <h2 className="text-2xl font-bold mb-6 text-gray-800">{editingEventId ? 'Edit Event' : 'Create New Event'}</h2>
+                    <form onSubmit={handleSaveEvent} className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <input required type="text" placeholder="Event Title" className="border px-4 py-3 rounded-lg focus:ring-2 focus:ring-gray-700 outline-none transition" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} />
                         <input required type="text" placeholder="Category (e.g., Tech, Music)" className="border px-4 py-3 rounded-lg focus:ring-2 focus:ring-gray-700 outline-none transition" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} />
                         <input required type="date" className="border px-4 py-3 rounded-lg focus:ring-2 focus:ring-gray-700 outline-none transition" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
                         <input required type="text" placeholder="Location" className="border px-4 py-3 rounded-lg focus:ring-2 focus:ring-gray-700 outline-none transition" value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} />
-                        <input required type="number" placeholder="Total Seats" className="border px-4 py-3 rounded-lg focus:ring-2 focus:ring-gray-700 outline-none transition" value={formData.totalSeats} onChange={e => setFormData({ ...formData, totalSeats: e.target.value })} />
+                        {!editingEventId && <input required type="number" placeholder="Total Seats" className="border px-4 py-3 rounded-lg focus:ring-2 focus:ring-gray-700 outline-none transition" value={formData.totalSeats} onChange={e => setFormData({ ...formData, totalSeats: e.target.value })} />}
                         <input required type="number" placeholder="Ticket Price (0 for free)" className="border px-4 py-3 rounded-lg focus:ring-2 focus:ring-gray-700 outline-none transition" value={formData.ticketPrice} onChange={e => setFormData({ ...formData, ticketPrice: e.target.value })} />
 
                         <div className="md:col-span-2">
@@ -150,7 +211,8 @@ const AdminDashboard = () => {
                         </div>
 
                         <textarea required placeholder="Event Description" className="border px-4 py-3 rounded-lg md:col-span-2 h-32 focus:ring-2 focus:ring-gray-700 outline-none transition" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
-                        <button type="submit" className="md:col-span-2 bg-gray-900 text-white font-bold py-3 mt-2 rounded-lg hover:bg-black transition shadow-md">Publish Event</button>
+                        <button type="submit" className="md:col-span-2 bg-gray-900 text-white font-bold py-3 mt-2 rounded-lg hover:bg-black transition shadow-md">{editingEventId ? 'Save Changes' : 'Publish Event'}</button>
+                        {editingEventId && <p className="md:col-span-2 text-sm text-gray-500">Seat capacity is not editable here.</p>}
                     </form>
                 </div>
             )}
@@ -160,7 +222,7 @@ const AdminDashboard = () => {
                 <div className="flex flex-col">
                     <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-3">
                         <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-600 text-sm">{events.length}</span>
-                        All Events
+                        Events
                     </h2>
                     {eventsError && <p role="alert" className="mb-3 text-red-700">{eventsError} <button onClick={fetchData} className="font-bold underline">Retry</button></p>}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -173,11 +235,19 @@ const AdminDashboard = () => {
                                             <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
                                                 <span className="flex items-center gap-1 font-medium"><div className="w-2 h-2 rounded-full bg-blue-500"></div> {new Date(event.date).toLocaleDateString()}</span>
                                                 <span className="flex items-center gap-1 font-medium"><div className={`w-2 h-2 rounded-full ${event.availableSeats > 0 ? 'bg-green-500' : 'bg-red-500'}`}></div> {event.availableSeats}/{event.totalSeats} seats</span>
+                                                {event.isArchived && <span className="rounded-full bg-gray-200 px-2 py-1 text-xs font-bold text-gray-700">Archived</span>}
                                             </div>
                                         </div>
-                                        <button onClick={() => handleDeleteEvent(event._id)} className="w-full sm:w-auto text-red-500 hover:text-white hover:bg-red-500 border border-red-200 px-4 py-2 rounded-lg text-sm font-bold transition shadow-sm shrink-0">
-                                            Delete
-                                        </button>
+                                        <div className="flex flex-wrap gap-2">
+                                            {event.isArchived ? <>
+                                                <button onClick={() => handleRestoreEvent(event)} className="border border-green-200 px-3 py-2 rounded-lg text-sm font-bold text-green-700">Restore</button>
+                                                <Link to={`/events/${event._id}`} className="border px-3 py-2 rounded-lg text-sm font-bold">View details</Link>
+                                            </> : <>
+                                                <button onClick={() => handleEditEvent(event)} className="border px-3 py-2 rounded-lg text-sm font-bold">Edit</button>
+                                                <button onClick={() => handleArchiveEvent(event)} className="border border-amber-200 px-3 py-2 rounded-lg text-sm font-bold text-amber-700">Archive</button>
+                                            </>}
+                                            <button onClick={() => handleDeleteEvent(event._id)} className="border border-red-200 px-3 py-2 rounded-lg text-sm font-bold text-red-600">Delete</button>
+                                        </div>
                                     </li>
                                 ))
                             }

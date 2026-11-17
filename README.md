@@ -59,7 +59,8 @@ The platform also incorporates email-based OTP verification, automated reservati
 - Browse and discover available events.
 - View detailed event information.
 - Authorized event creation and modification.
-- Event deletion with permission checks.
+- Admin-only event archiving and restoration; permanent deletion is blocked
+  while any booking references the event.
 - Event capacity and availability management.
 - Administrative event management interface.
 

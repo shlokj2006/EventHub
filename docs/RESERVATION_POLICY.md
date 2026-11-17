@@ -4,7 +4,7 @@
 
 `Event.availableSeats` is the number of seats not currently allocated. Existing confirmed bookings have already reduced this number. Legacy pending bookings did not reserve seats and continue to do so until approved. Legacy bookings without reservation fields are not treated as active reservations.
 
-New booking requests create a `Booking` in `reserving` state, then atomically decrement `availableSeats` and add a matching `Event.capacityClaims` entry. The claim includes booking ID, user ID, quantity, state, and (for paid events) its expiry. The event update is also the per-event duplicate-user guard. A paid request remains pending with `capacityState: reserved`; an approved booking changes to confirmed/consumed without another seat decrement. A free booking consumes capacity and becomes confirmed immediately, outside the admin approval queue.
+New booking requests first atomically decrement `availableSeats` and add a matching `Event.capacityClaims` entry, then create the `Booking` in `reserving` state. The claim includes booking ID, user ID, quantity, state, and (for paid events) its expiry. The event update is also the per-event duplicate-user guard and the event lifecycle admission gate. The booking is then finalized as pending/reserved for paid events or confirmed/consumed for free events. A paid approval changes a reserved booking to confirmed/consumed without another seat decrement.
 
 Rejection, cancellation, and expiry first make the booking non-approvable, then remove its matching event claim and return its quantity in one atomic event update. Repeating the release cannot return seats twice because the claim is removed by the same update that increments capacity. Legacy confirmed bookings have no claim, so their first cancellation uses `legacyCapacityReleaseIds` as a durable idempotency marker. The marker is removed after the booking is durably marked released. Legacy pending bookings release no seats.
 
@@ -42,6 +42,47 @@ The repository does not prove that the production MongoDB deployment is a replic
 
 This is not cross-document atomicity. Until the next scheduler run, interrupted operations may temporarily show a booking in a transitional state or hold seats. The event's claim array grows with active reservations and confirmed allocations until cancellation or expiry; monitor event document size for unusually high-volume events. Legacy release markers remain only while a release is in progress. Do not manually edit `availableSeats`, `capacityClaims`, or release markers independently.
 
+## Event lifecycle and deletion coordination
+
+Events are active by default (`isArchived: false`). Archiving sets
+`isArchived: true`; restoring sets it to `false`. Both are admin-only and
+preserve the event record, bookings, and tickets. Public lists and details
+exclude archived events (a hidden detail returns 404); admins can view archived
+events. New booking admission rejects archived events, while approval and
+reservation reconciliation for existing bookings may continue against an
+archived event. See [`API_CONTRACT.md`](API_CONTRACT.md) for routes and
+responses.
+
+Permanent deletion is admin-only and is rejected with HTTP 409 if any Booking
+references the event, regardless of booking status. It is also rejected while
+capacity claims remain. Before those checks, deletion obtains an atomic,
+tokenized lease on the Event for 30 seconds. Normal new-booking capacity claims
+require that no unexpired lease exists and atomically remove an expired lease
+when they succeed. Deletion then conditionally deletes only if its token still
+matches, its lease is unexpired, and no capacity claims remain. Cleanup in a
+`finally` block releases the lease only when the token still matches; if the
+process dies or release fails, expiry permits retry after at most the remaining
+lease duration. A stale request cannot release another request's lease or
+delete under a replaced token.
+
+The Event-document updates serialize normal booking admission against final
+deletion, but this is not a transaction across Event and Booking documents.
+If the process stops after adding a capacity claim but before creating its
+Booking, the claim temporarily holds seats and blocks deletion; reconciliation
+releases it when it finds no corresponding Booking. If Booking creation has an
+ambiguous result, reconciliation aligns the claim with the Booking if present
+or releases it otherwise. Cleanup depends on maintenance running. Capacity
+claim reconciliation currently reads at most 100 Event documents with claims
+per invocation and has no explicit pagination cursor; a persistent first page
+could delay orphan claims on later events. This behavior is not proof of
+production concurrency or MongoDB topology.
+
+Archive and restore do not acquire or check the deletion lease. Concurrent
+admin archive/restore and permanent deletion requests can therefore race: an
+archive/restore response may succeed immediately before the event is deleted.
+This does not affect Booking or Ticket documents, but there is no lifecycle
+mutation serialization for that admin-to-admin race.
+
 ## Data and indexes
 
 No migration or production data update is required for the new optional booking fields. Existing confirmed bookings remain represented by the current `availableSeats` value; old pending bookings remain unreserved. No unique index is added because existing records have not been checked for duplicate active user/event bookings. New concurrent duplicate requests are serialized by the atomic event claim. A database audit is still required before adding a collection-level unique constraint.
@@ -59,3 +100,8 @@ No migration or production data update is required for the new optional booking 
 New bookings snapshot event title/date, unit price, currency, and attendee details. Confirmed bookings receive one ticket per attendee. Ticket references are generated with secure randomness and have unique indexes on the public reference and `(bookingId, attendeeIndex)` pair. Ticket issuance uses upserts so repeated confirmation or a later booking-history read repairs partial issuance without duplicates. Free bookings confirm and issue tickets immediately; paid bookings issue tickets only after an admin confirms them.
 
 Cancellation and expiry void existing tickets. Booking history only exposes active ticket references for confirmed bookings owned by the requesting user (or to an admin). The new Ticket collection creates its unique indexes before issuance; no existing booking data is rewritten. A cross-document crash can leave a confirmed booking temporarily missing tickets, but the next booking-history read or repeated same-status admin confirmation retries issuance. The implementation does not rely on MongoDB transactions.
+
+If a confirmed legacy Booking has a missing or null `eventId`, ticket issuance
+returns an empty result without attempting a ticket upsert; no event reference
+is inferred or repaired. Booking history still queries and attaches any
+already-existing active tickets for that Booking after the issuance attempt.

@@ -50,6 +50,18 @@ assumed here. A merge does not merge database records. Backups, a tested
 migration/reconciliation plan, duplicate checks, and explicit review are
 required before live changes; no destructive data operation is implicit.
 
+## D-008: Event archive and guarded permanent deletion
+
+**Decision:** Archive and restore events by changing `isArchived`; preserve
+their bookings and tickets. New booking admission and permanent deletion
+coordinate through atomic updates to the Event document. Permanent deletion
+uses a tokenized, expiring lease and conditional deletion, and rejects events
+with any referencing Booking. **Limit:** Event and Booking writes are not one
+transaction. Interrupted capacity claims rely on maintenance reconciliation,
+which currently scans at most 100 event documents with claims per invocation
+without an explicit pagination cursor. This does not establish production
+MongoDB topology or prove production race behavior.
+
 ## Deferred decisions
 
 A full-site UX redesign and real payment integration—including provider
