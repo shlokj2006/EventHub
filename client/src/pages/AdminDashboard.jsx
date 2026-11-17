@@ -8,7 +8,10 @@ const AdminDashboard = () => {
     const navigate = useNavigate();
     const [events, setEvents] = useState([]);
     const [bookings, setBookings] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [eventsLoading, setEventsLoading] = useState(true);
+    const [bookingsLoading, setBookingsLoading] = useState(true);
+    const [eventsError, setEventsError] = useState('');
+    const [bookingsError, setBookingsError] = useState('');
     const [approvingBookingId, setApprovingBookingId] = useState(null);
 
     const [showEventForm, setShowEventForm] = useState(false);
@@ -17,18 +20,21 @@ const AdminDashboard = () => {
     });
 
     const fetchData = useCallback(async () => {
-        try {
-            const [eventsRes, bookingsRes] = await Promise.all([
-                api.get('/events'),
-                api.get('/bookings/admin')
-            ]);
-            setEvents(eventsRes.data);
-            setBookings(bookingsRes.data);
-        } catch (error) {
-            console.error('Error fetching admin data', error);
-        } finally {
-            setLoading(false);
-        }
+        setEventsLoading(true);
+        setBookingsLoading(true);
+        setEventsError('');
+        setBookingsError('');
+
+        await Promise.all([
+            api.get('/events')
+                .then((response) => setEvents(response.data))
+                .catch((error) => setEventsError(error?.response?.data?.message || 'Unable to load events.'))
+                .finally(() => setEventsLoading(false)),
+            api.get('/bookings/admin')
+                .then((response) => setBookings(response.data))
+                .catch((error) => setBookingsError(error?.response?.data?.message || 'Unable to load bookings.'))
+                .finally(() => setBookingsLoading(false))
+        ]);
     }, []);
 
     useEffect(() => {
@@ -85,8 +91,6 @@ const AdminDashboard = () => {
         }
     };
 
-    if (loading) return <div className="text-center py-20 text-xl font-semibold">Loading admin panel...</div>;
-
     return (
         <div className="max-w-7xl mx-auto">
             <div className="bg-black text-white rounded-2xl p-6 sm:p-8 mb-8 shadow-lg flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-left">
@@ -110,21 +114,21 @@ const AdminDashboard = () => {
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
                     <div>
                         <p className="text-gray-500 text-sm font-bold uppercase tracking-wider mb-1">Admin-Recorded Paid Total</p>
-                        <h3 className="text-3xl font-black text-green-600">₹{bookings.reduce((sum, b) => b.paymentStatus === 'paid' && b.status === 'confirmed' ? sum + b.amount : sum, 0)}</h3>
+                        <h3 className="text-3xl font-black text-green-600">{bookingsLoading || bookingsError ? '—' : `₹${bookings.reduce((sum, b) => b.paymentStatus === 'paid' && b.status === 'confirmed' ? sum + b.amount : sum, 0)}`}</h3>
                     </div>
                     <div className="w-12 h-12 bg-green-100 text-green-500 rounded-full flex items-center justify-center text-xl font-bold">₹</div>
                 </div>
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
                     <div>
                         <p className="text-gray-500 text-sm font-bold uppercase tracking-wider mb-1">Paid Clients</p>
-                        <h3 className="text-3xl font-black text-blue-600">{new Set(bookings.filter(b => b.paymentStatus === 'paid' && b.status === 'confirmed').map(b => b.userId?._id)).size}</h3>
+                        <h3 className="text-3xl font-black text-blue-600">{bookingsLoading || bookingsError ? '—' : new Set(bookings.filter(b => b.paymentStatus === 'paid' && b.status === 'confirmed').map(b => b.userId?._id)).size}</h3>
                     </div>
                     <div className="w-12 h-12 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center text-xl font-bold">👤</div>
                 </div>
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
                     <div>
                         <p className="text-gray-500 text-sm font-bold uppercase tracking-wider mb-1">Pending Requests</p>
-                        <h3 className="text-3xl font-black text-yellow-600">{bookings.filter(b => b.status === 'pending').length}</h3>
+                        <h3 className="text-3xl font-black text-yellow-600">{bookingsLoading || bookingsError ? '—' : bookings.filter(b => b.status === 'pending').length}</h3>
                     </div>
                     <div className="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center text-xl font-bold">⏳</div>
                 </div>
@@ -158,9 +162,10 @@ const AdminDashboard = () => {
                         <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-600 text-sm">{events.length}</span>
                         All Events
                     </h2>
+                    {eventsError && <p role="alert" className="mb-3 text-red-700">{eventsError} <button onClick={fetchData} className="font-bold underline">Retry</button></p>}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                         <ul className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
-                            {events.length === 0 ? <li className="p-6 text-gray-500 text-center">No events created yet.</li> :
+                            {eventsLoading && events.length === 0 ? <li className="p-6 text-gray-500 text-center" role="status">Loading events...</li> : events.length === 0 && !eventsError ? <li className="p-6 text-gray-500 text-center">No events created yet.</li> :
                                 events.map(event => (
                                     <li key={event._id} className="p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-gray-50 transition border-b border-gray-100 last:border-0">
                                         <div>
@@ -186,9 +191,10 @@ const AdminDashboard = () => {
                         <span className="flex items-center justify-center w-8 h-8 rounded-full bg-yellow-100 text-yellow-700 text-sm font-bold">{bookings.length}</span>
                         Booking Requests
                     </h2>
+                    {bookingsError && <p role="alert" className="mb-3 text-red-700">{bookingsError} <button onClick={fetchData} className="font-bold underline">Retry</button></p>}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                         <ul className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
-                            {bookings.length === 0 ? <li className="p-6 text-gray-500 text-center">No bookings yet.</li> :
+                            {bookingsLoading && bookings.length === 0 ? <li className="p-6 text-gray-500 text-center" role="status">Loading bookings...</li> : bookings.length === 0 && !bookingsError ? <li className="p-6 text-gray-500 text-center">No bookings yet.</li> :
                                 bookings.map(booking => (
                                     <li key={booking._id} className={`p-6 hover:bg-gray-50 transition border-l-4 ${booking.status === 'pending' ? 'border-l-yellow-400' : booking.status === 'confirmed' ? 'border-l-green-400' : 'border-l-red-400'}`}>
                                         <div className="flex justify-between items-start mb-3">

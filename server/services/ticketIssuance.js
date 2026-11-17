@@ -7,6 +7,9 @@ const idOf = (value) => value?._id || value;
 
 const issueTicketsForBooking = async (booking, fallbackUser) => {
   if (!booking || booking.status !== 'confirmed') return [];
+  const eventId = idOf(booking.eventId);
+  if (!eventId) return [];
+
   const currentBooking = await Booking.findById(booking._id).select('status');
   if (!currentBooking || currentBooking.status !== 'confirmed') return [];
   await Ticket.createIndexes();
@@ -23,7 +26,6 @@ const issueTicketsForBooking = async (booking, fallbackUser) => {
   const eventTitle = booking.eventTitle || event?.title || 'Event';
   const eventDate = booking.eventDate || event?.date;
   const userId = idOf(booking.userId);
-  const eventId = idOf(booking.eventId);
   const issued = [];
 
   for (let attendeeIndex = 0; attendeeIndex < quantity; attendeeIndex += 1) {

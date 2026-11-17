@@ -2,6 +2,7 @@ const Booking = require("../models/Booking");
 const Event = require("../models/Event");
 const Ticket = require("../models/Ticket");
 const OTP = require("../models/OTP");
+const { randomUUID } = require("node:crypto");
 const { generateOtp } = require("../utils/otp");
 const { sendOTPEmail, safeEmailErrorCode } = require("../utils/email");
 const {
@@ -33,6 +34,24 @@ const {
 } = require("../services/bookingConfirmationEmail");
 
 const RESERVATION_HOURS = 24;
+
+const sanitizeDiagnosticText = (value) => {
+  const redactions = [
+    [/\b(?:mongodb(?:\+srv)?|smtp|smtps):\/\/[^\s"'<>]+/gi, "[REDACTED_URI]"],
+    [/\bBearer\s+[^\s"']+/gi, "Bearer [REDACTED]"],
+    [/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[REDACTED_JWT]"],
+    [/\bvalue\s+(?:"[^"]*"|'[^']*'|[^\s,)]+)/gi, "value [REDACTED]"],
+    [/\b(?:email|name|phone|attendee|booking|bookingId|bookingReference|ticket|ticketReference|user|userId|eventId|address|amount|quantity|total|price|confirmationEmail)\b(\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;}]+)/gi, "$1[REDACTED]"],
+    [/\b([A-Z][A-Z0-9_]{1,})\s*=\s*(?:"[^"]*"|'[^']*'|[^\s,;}]+)/g, "$1=[REDACTED]"],
+    [/\b(?:password|passwd|pwd|pass|username|secret|token|authorization|cookie|credential|api[_-]?key|client[_-]?secret|private[_-]?key|[A-Z][A-Z0-9_]*(?:URI|URL|PASSWORD|SECRET|TOKEN|CREDENTIALS?))\b(\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;}]+)/gi, "$1[REDACTED]"],
+    [/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "[REDACTED_EMAIL]"],
+  ];
+  let sanitized = typeof value === "string" ? value : String(value ?? "Unknown error");
+  for (const [pattern, replacement] of redactions) {
+    sanitized = sanitized.replace(pattern, replacement);
+  }
+  return sanitized.slice(0, 12000);
+};
 
 exports.sendBookingOTP = async (req, res) => {
   try {
@@ -503,14 +522,40 @@ exports.getMyBookings = async (req, res) => {
 };
 
 exports.getAllBookings = async (req, res) => {
+  const providedRequestId = req.id || req.requestId || req.get?.("x-vercel-id");
+  const requestId =
+    typeof providedRequestId === "string" &&
+    /^[A-Za-z0-9._:-]{1,128}$/.test(providedRequestId)
+      ? providedRequestId
+      : randomUUID();
+  let stage = "reservation_reconciliation";
   try {
     await expireAndReconcileReservations(new Date());
+
+    stage = "booking_query_population";
     const bookings = await Booking.find()
       .populate("eventId")
       .populate("userId", "name email")
       .sort({ createdAt: -1 });
-    res.json(await attachActiveTickets(bookings));
+
+    stage = "ticket_processing";
+    const bookingsWithTickets = await attachActiveTickets(bookings);
+
+    stage = "response_serialization";
+    res.json(bookingsWithTickets);
   } catch (error) {
+    console.error(JSON.stringify({
+      event: "admin_bookings_request_failed",
+      timestamp: new Date().toISOString(),
+      requestId,
+      method: req.method,
+      route: "/api/bookings/admin",
+      stage,
+      errorName: sanitizeDiagnosticText(error?.name || "Error"),
+      errorMessage: sanitizeDiagnosticText(error?.message || error),
+      stack: sanitizeDiagnosticText(error?.stack || ""),
+      ...(req.user?.role ? { userRole: sanitizeDiagnosticText(req.user.role) } : {}),
+    }));
     res.status(500).json({ message: "Unable to load all bookings" });
   }
 };

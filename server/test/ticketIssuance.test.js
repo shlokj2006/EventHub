@@ -87,3 +87,27 @@ test('pending bookings receive no tickets and cancellation voids issued tickets'
     assert.equal([...store.values()][0].status, 'void');
   });
 });
+
+test('confirmed bookings with null or missing event references skip ticket creation', async () => {
+  await withTicketStore(async (store) => {
+    const baseBooking = {
+      _id: 'booking-without-event',
+      userId: 'user-3',
+      eventTitle: 'Snapshot Event',
+      quantity: 1,
+      amount: 10,
+      unitPrice: 10,
+      status: 'confirmed',
+      attendees: [{ name: 'Synthetic Attendee' }],
+    };
+
+    for (const booking of [
+      { ...baseBooking, eventId: null },
+      { ...baseBooking },
+    ]) {
+      assert.deepEqual(await issueTicketsForBooking(booking), []);
+    }
+
+    assert.equal(store.size, 0);
+  });
+});
