@@ -2,6 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../utils/axios';
 import TicketScanner from '../components/TicketScanner';
+import Button from '../components/ui/Button';
+import Feedback from '../components/ui/Feedback';
+import { PageHeading, Surface } from '../components/ui/LayoutPrimitives';
 
 const EventStaffDashboard = () => {
     const [events, setEvents] = useState([]);
@@ -25,27 +28,48 @@ const EventStaffDashboard = () => {
     useEffect(() => { void Promise.resolve().then(loadEvents); }, [loadEvents]);
 
     return (
-        <section className="max-w-6xl mx-auto">
-            <header className="rounded-2xl bg-gray-900 p-6 text-white sm:p-8">
-                <h1 className="text-3xl font-extrabold">Event Staff Dashboard</h1>
-                <p className="mt-2 text-gray-300">Event information for events assigned to your account.</p>
+        <section className="mx-auto max-w-6xl space-y-7">
+            <header className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                    <p className="mb-2 font-interface text-xs font-bold uppercase tracking-[0.15em] text-brand-navy">Event operations</p>
+                    <PageHeading>Event Staff Dashboard</PageHeading>
+                    <p className="mt-3 max-w-2xl text-text-secondary">Review events assigned to your account and check guests in by scanning their ticket QR codes.</p>
+                </div>
+                <a href="#ticket-scanner-heading" className="eh-button eh-button--secondary self-start sm:self-auto">Open ticket scanner</a>
             </header>
+
             <TicketScanner />
-            {error && <div role="alert" className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">{error}<button className="ml-3 font-bold underline" onClick={loadEvents}>Retry</button></div>}
-            {loading ? <p className="py-12 text-center" role="status">Loading assigned events…</p> : events.length === 0 ? (
-                <p className="mt-6 rounded-xl bg-white p-8 text-center text-gray-600">No events have been assigned to you yet.</p>
-            ) : (
-                <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                    {events.map((event) => <li key={event._id} className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-                        <h2 className="text-xl font-bold text-gray-900">{event.title}</h2>
-                        <p className="mt-2 text-sm text-gray-600">{new Date(event.date).toLocaleString()}</p>
-                        <p className="text-sm text-gray-600">{event.location}</p>
-                        <p className="mt-3 text-sm text-gray-700">{event.availableSeats} of {event.totalSeats} seats available</p>
-                        {event.description && <p className="mt-3 line-clamp-3 text-sm text-gray-600">{event.description}</p>}
-                        <Link to={`/events/${event._id}`} className="mt-4 inline-block font-semibold text-gray-900 underline">View public event page</Link>
-                    </li>)}
-                </ul>
-            )}
+
+            <section aria-labelledby="assigned-events-heading" className="space-y-4">
+                <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-3">
+                    <div>
+                        <p className="mb-1 font-interface text-xs font-bold uppercase tracking-wide text-text-muted">Your schedule</p>
+                        <h2 id="assigned-events-heading" className="eh-section-title">Assigned events <span className="text-base font-semibold text-text-muted">({events.length})</span></h2>
+                    </div>
+                    {loading && events.length > 0 && <span role="status" className="text-sm text-text-secondary">Refreshing…</span>}
+                </div>
+
+                {error && <div className="space-y-3"><Feedback tone="error">{error}</Feedback><Button type="button" variant="outline" onClick={loadEvents}>Retry loading events</Button></div>}
+                {loading ? <Feedback tone="loading">Loading assigned events…</Feedback> : events.length === 0 && !error ? (
+                    <Surface className="p-6 sm:p-8"><Feedback tone="empty">No events have been assigned to you yet.</Feedback></Surface>
+                ) : events.length > 0 && (
+                    <ul className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                        {events.map((event) => (
+                            <Surface as="li" key={event._id} className="flex min-w-0 flex-col p-5 sm:p-6">
+                                <p className="font-interface text-xs font-bold uppercase tracking-wide text-text-muted">Assigned event</p>
+                                <h3 className="mt-2 break-words font-interface text-xl font-bold leading-snug text-text-primary">{event.title}</h3>
+                                <dl className="mt-4 space-y-3 text-sm">
+                                    <div><dt className="font-semibold text-text-muted">Date and time</dt><dd className="mt-1 text-text-secondary">{new Date(event.date).toLocaleString()}</dd></div>
+                                    <div><dt className="font-semibold text-text-muted">Location</dt><dd className="mt-1 break-words text-text-secondary">{event.location}</dd></div>
+                                    <div><dt className="font-semibold text-text-muted">Availability</dt><dd className="mt-1 text-text-secondary">{event.availableSeats} of {event.totalSeats} seats</dd></div>
+                                </dl>
+                                {event.description && <p className="mt-4 line-clamp-3 text-sm leading-relaxed text-text-secondary">{event.description}</p>}
+                                <Link to={`/events/${event._id}`} className="eh-button eh-button--outline mt-5 w-full">View public event page</Link>
+                            </Surface>
+                        ))}
+                    </ul>
+                )}
+            </section>
         </section>
     );
 };

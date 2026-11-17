@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import api from '../utils/axios';
+import Button from '../components/ui/Button';
+import Feedback from '../components/ui/Feedback';
+import FormControl from '../components/ui/FormControl';
+import { PageHeading, Surface } from '../components/ui/LayoutPrimitives';
 
 export default function ResetPassword() {
     const location = useLocation();
@@ -42,33 +46,29 @@ export default function ResetPassword() {
     };
 
     if (success) return (
-        <section className="max-w-md mx-auto mt-16 bg-white p-8 rounded-xl shadow-lg border border-gray-100 text-center">
-            <h1 className="text-3xl font-extrabold text-gray-900 mb-3">Password updated</h1>
-            <p role="status" className="text-gray-600 mb-7">Your password has been reset. Sign in with your new password.</p>
-            <Link to="/login" className="inline-block bg-gray-900 text-white font-bold py-3 px-6 rounded-lg hover:bg-black">Go to sign in</Link>
-        </section>
+        <Surface as="section" className="mx-auto my-8 w-full max-w-xl p-5 text-center sm:p-8">
+            <Feedback tone="success" className="mb-5 text-left">Your password has been reset.</Feedback>
+            <PageHeading>Password updated</PageHeading>
+            <p className="mb-7 mt-3 text-text-secondary">Sign in with your new password.</p>
+            <Link to="/login" className="eh-button eh-button--primary">Go to sign in</Link>
+        </Surface>
     );
 
     return (
-        <section className="max-w-md mx-auto mt-16 bg-white p-8 rounded-xl shadow-lg border border-gray-100">
-            <h1 className="text-3xl font-extrabold text-gray-900 mb-2 text-center">Set a new password</h1>
-            <p className="text-gray-600 text-center mb-7">Choose a password with at least 8 characters.</p>
-            {error && <div role="alert" className="bg-red-50 text-red-700 p-3 rounded-lg mb-5">{error} <Link to="/forgot-password" className="font-bold underline">Request another link</Link></div>}
+        <Surface as="section" className="mx-auto my-8 w-full max-w-xl p-5 sm:p-8">
+            <p className="mb-2 font-interface text-xs font-bold uppercase tracking-[0.15em] text-brand-navy">Account access</p>
+            <PageHeading>Set a new password</PageHeading>
+            <p className="mb-7 mt-3 text-text-secondary">Choose a password with at least 8 characters.</p>
+            {error && <Feedback tone="error" className="mb-5">{error} <Link to="/forgot-password" className="font-bold underline underline-offset-4">Request another link</Link></Feedback>}
             {!token ? (
-                <div role="status" className="text-center text-gray-700">This reset link is missing or invalid. <Link to="/forgot-password" className="font-bold underline">Request another link</Link>.</div>
+                <Feedback tone="warning">This reset link is missing or invalid. <Link to="/forgot-password" className="font-bold underline underline-offset-4">Request another link</Link>.</Feedback>
             ) : (
                 <form onSubmit={submit} className="space-y-5">
-                    <div>
-                        <label htmlFor="new-password" className="block text-sm font-semibold text-gray-700 mb-2">New password</label>
-                        <input id="new-password" name="new-password" type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={password} onChange={(event) => setPassword(event.target.value)} className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-700" />
-                    </div>
-                    <div>
-                        <label htmlFor="confirm-password" className="block text-sm font-semibold text-gray-700 mb-2">Confirm new password</label>
-                        <input id="confirm-password" name="confirm-password" type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-700" />
-                    </div>
-                    <button type="submit" disabled={loading} className="w-full bg-gray-900 text-white font-bold py-3 rounded-lg hover:bg-black disabled:opacity-60">{loading ? 'Updating…' : 'Reset password'}</button>
+                    <FormControl id="new-password" name="new-password" label="New password" type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={password} onChange={(event) => setPassword(event.target.value)} />
+                    <FormControl id="confirm-password" name="confirm-password" label="Confirm new password" type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
+                    <Button type="submit" disabled={loading} loading={loading} loadingText="Updating..." className="w-full">Reset password</Button>
                 </form>
             )}
-        </section>
+        </Surface>
     );
 }

@@ -1,41 +1,46 @@
 import { useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { FaTicketAlt } from 'react-icons/fa';
+import { Container } from './ui/LayoutPrimitives';
+import { BrandLink, LogoutButton, MenuToggle, NavigationLink } from '../layouts/LayoutNavigation';
+import useLayoutNavigation from '../layouts/useLayoutNavigation';
 
 const Navbar = () => {
-    const { user, logout } = useContext(AuthContext);
-    const navigate = useNavigate();
-
-    const handleLogout = () => {
-        logout();
-        navigate('/login');
-    };
+    const { user } = useContext(AuthContext);
+    const { isOpen, close, toggle } = useLayoutNavigation();
+    const { pathname } = useLocation();
+    const isEventsActive = pathname === '/' || pathname.startsWith('/events/');
+    const dashboardPath = user?.role === 'admin' ? '/admin' : user?.role === 'event_staff' ? '/staff' : '/dashboard';
 
     return (
-        <nav className="bg-gray-900 shadow-lg">
-            <div className="container mx-auto px-4">
-                <div className="flex flex-col md:flex-row justify-between items-center py-4 gap-4">
-                    <Link to="/" className="text-white text-2xl font-bold flex items-center gap-2">
-                        <FaTicketAlt /> EventHub
-                    </Link>
-                    <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
-                        <Link to="/" className="text-gray-200 hover:text-white transition cursor-pointer">Events</Link>
-                        {user ? (
-                            <>
-                                <Link to={user.role === 'admin' ? '/admin' : user.role === 'event_staff' ? '/staff' : '/dashboard'} className="text-gray-200 hover:text-white transition">Dashboard</Link>
-                                <button onClick={handleLogout} className="bg-gray-700 hover:bg-black text-white px-4 py-2 rounded-md transition">Logout</button>
-                            </>
-                        ) : (
-                            <>
-                                <Link to="/login" className="text-gray-200 hover:text-white transition">Login</Link>
-                                <Link to="/register" className="bg-white text-gray-900 hover:bg-gray-100 px-4 py-2 rounded-md font-semibold transition">Sign Up</Link>
-                            </>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </nav>
+        <header className="border-b border-border bg-surface">
+            <Container className="flex flex-wrap items-center justify-between gap-3 py-2">
+                <BrandLink onClick={close} />
+                <MenuToggle controls="public-navigation" isOpen={isOpen} onToggle={toggle} />
+                <nav id="public-navigation" aria-label="Main navigation" className={`${isOpen ? 'flex' : 'hidden'} w-full flex-col gap-2 pb-2 lg:flex lg:w-auto lg:flex-row lg:items-center lg:pb-0`}>
+                    <NavLink
+                        to="/"
+                        end
+                        onClick={close}
+                        aria-current={isEventsActive ? 'page' : undefined}
+                        className={({ isActive }) => `inline-flex min-h-11 items-center rounded-control px-3 font-interface font-semibold transition-colors ${isActive || isEventsActive ? 'bg-brand-gold-light text-brand-navy' : 'text-text-secondary hover:bg-surface-muted hover:text-brand-navy'}`}
+                    >
+                        Events
+                    </NavLink>
+                    {user ? (
+                        <>
+                            <NavigationLink to={dashboardPath} onClick={close}>Dashboard</NavigationLink>
+                            <LogoutButton />
+                        </>
+                    ) : (
+                        <>
+                            <NavigationLink to="/login" onClick={close}>Log in</NavigationLink>
+                            <NavigationLink to="/register" onClick={close} className="bg-brand-navy text-white hover:bg-brand-navy hover:text-white [&.active]:bg-brand-gold-light [&.active]:text-brand-navy">Sign up</NavigationLink>
+                        </>
+                    )}
+                </nav>
+            </Container>
+        </header>
     );
 };
 

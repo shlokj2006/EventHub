@@ -2,6 +2,10 @@ import { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { getLoginDestination } from '../utils/authNavigation';
+import Button from '../components/ui/Button';
+import Feedback from '../components/ui/Feedback';
+import FormControl from '../components/ui/FormControl';
+import { PageHeading, Surface } from '../components/ui/LayoutPrimitives';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -44,66 +48,32 @@ const Login = () => {
     };
 
     return (
-        <div className="max-w-md mx-auto mt-20 bg-white p-8 rounded-xl shadow-lg border border-gray-100">
-            <div className="text-center mb-8">
-                <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Welcome Back</h2>
-                <p className="text-gray-500">Sign in to your EventHub account</p>
+        <Surface as="section" className="mx-auto my-8 w-full max-w-xl p-5 sm:p-8">
+            <div className="mb-8 border-b border-border pb-6">
+                <p className="mb-2 font-interface text-xs font-bold uppercase tracking-[0.15em] text-brand-navy">Your account</p>
+                <PageHeading>{showOTP ? 'Verify your sign-in' : 'Welcome back'}</PageHeading>
+                <p className="mt-3 text-text-secondary">{showOTP ? 'Enter the code sent to your email to continue.' : 'Sign in to your EventHub account.'}</p>
             </div>
 
-            {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-6 text-center shadow-inner border border-red-100">{error}</div>}
+            {error && <Feedback tone={error.startsWith('Account not verified') ? 'info' : 'error'} className="mb-6">{error}</Feedback>}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
                 {!showOTP ? (
                     <>
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
-                            <input
-                                type="email"
-                                required
-                                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-700 focus:border-gray-700 transition shadow-sm"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
-                            <input
-                                type="password"
-                                required
-                                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-700 focus:border-gray-700 transition shadow-sm"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                            />
-                        </div>
+                        <FormControl id="login-email" label="Email address" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                        <FormControl id="login-password" label="Password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
                     </>
                 ) : (
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Verification Code (OTP)</label>
-                        <input
-                            type="text"
-                            required
-                            placeholder="6-digit code"
-                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-700 transition shadow-sm font-bold tracking-widest text-center text-lg"
-                            value={otp}
-                            onChange={(e) => setOtp(e.target.value)}
-                            maxLength="6"
-                        />
-                    </div>
+                    <FormControl id="login-otp" label="Verification code (OTP)" type="text" inputMode="numeric" autoComplete="one-time-code" required placeholder="6-digit code" className="text-center font-bold tracking-widest" value={otp} onChange={(e) => setOtp(e.target.value)} maxLength="6" />
                 )}
-                <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full bg-gray-900 text-white font-bold py-3 rounded-lg hover:bg-black focus:ring-4 focus:ring-gray-200 transition shadow-md"
-                >
-                    {loading ? 'Processing...' : (showOTP ? 'Verify OTP & Log In' : 'Sign In')}
-                </button>
+                <Button type="submit" disabled={loading} loading={loading} loadingText="Processing…" className="w-full">{showOTP ? 'Verify OTP & sign in' : 'Sign in'}</Button>
             </form>
 
-            <p className="text-center mt-8 text-gray-600">
-                Don't have an account? <Link to="/register" className="text-gray-900 font-bold hover:underline">Sign up</Link>
+            <p className="mt-7 text-center text-sm text-text-secondary">
+                Don&apos;t have an account? <Link to="/register" className="font-bold text-brand-navy underline underline-offset-4">Create one</Link>
             </p>
-            {!showOTP && <p className="text-center mt-3"><Link to="/forgot-password" className="text-gray-700 font-semibold hover:underline">Forgot password?</Link></p>}
-        </div>
+            {!showOTP && <p className="mt-3 text-center text-sm"><Link to="/forgot-password" className="font-semibold text-text-secondary underline underline-offset-4">Forgot password?</Link></p>}
+        </Surface>
     );
 };
 

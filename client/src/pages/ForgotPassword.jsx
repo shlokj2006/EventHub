@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../utils/axios';
+import Button from '../components/ui/Button';
+import Feedback from '../components/ui/Feedback';
+import FormControl from '../components/ui/FormControl';
+import { PageHeading, Surface } from '../components/ui/LayoutPrimitives';
 
 export default function ForgotPassword() {
     const [email, setEmail] = useState('');
@@ -24,19 +28,17 @@ export default function ForgotPassword() {
     };
 
     return (
-        <section className="max-w-md mx-auto mt-16 bg-white p-8 rounded-xl shadow-lg border border-gray-100">
-            <h1 className="text-3xl font-extrabold text-gray-900 mb-2 text-center">Forgot password?</h1>
-            <p className="text-gray-600 text-center mb-7">Enter the email address associated with your account.</p>
-            {message && <div role="status" className="bg-green-50 text-green-800 p-3 rounded-lg mb-5">{message}</div>}
-            {error && <div role="alert" className="bg-red-50 text-red-700 p-3 rounded-lg mb-5">{error}</div>}
+        <Surface as="section" className="mx-auto my-8 w-full max-w-xl p-5 sm:p-8">
+            <p className="mb-2 font-interface text-xs font-bold uppercase tracking-[0.15em] text-brand-navy">Account access</p>
+            <PageHeading>Reset your password</PageHeading>
+            <p className="mb-7 mt-3 text-text-secondary">Enter the email address associated with your account.</p>
+            {message && <Feedback tone="success" className="mb-5">{message}</Feedback>}
+            {error && <Feedback tone="error" className="mb-5">{error}</Feedback>}
             <form onSubmit={submit} className="space-y-5">
-                <div>
-                    <label htmlFor="reset-email" className="block text-sm font-semibold text-gray-700 mb-2">Email address</label>
-                    <input id="reset-email" name="email" type="email" autoComplete="email" required maxLength={254} value={email} onChange={(event) => setEmail(event.target.value)} className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-700" />
-                </div>
-                <button type="submit" disabled={loading} className="w-full bg-gray-900 text-white font-bold py-3 rounded-lg hover:bg-black disabled:opacity-60">{loading ? 'Sending…' : 'Send reset link'}</button>
+                <FormControl id="reset-email" name="email" label="Email address" type="email" autoComplete="email" required maxLength={254} value={email} onChange={(event) => setEmail(event.target.value)} />
+                <Button type="submit" disabled={loading} loading={loading} loadingText="Sending..." className="w-full">Send reset link</Button>
             </form>
-            <p className="text-center mt-7 text-gray-600"><Link to="/login" className="font-bold text-gray-900 hover:underline">Back to sign in</Link></p>
-        </section>
+            <p className="mt-7 text-center text-sm text-text-secondary"><Link to="/login" className="font-bold text-brand-navy underline underline-offset-4">Back to sign in</Link></p>
+        </Surface>
     );
 }

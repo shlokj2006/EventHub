@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../utils/axios';
 import { getTicketScanMessage, parseTicketReference } from '../utils/ticketScan';
+import Button from './ui/Button';
+import Feedback from './ui/Feedback';
+import { Surface } from './ui/LayoutPrimitives';
 
 const TicketScanner = () => {
     const videoRef = useRef(null);
@@ -112,32 +115,55 @@ const TicketScanner = () => {
     }, []);
 
     return (
-        <section aria-labelledby="ticket-scanner-heading" className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-            <h2 id="ticket-scanner-heading" className="text-xl font-bold text-gray-900">Ticket check-in</h2>
-            <p className="mt-1 text-sm text-gray-600">Scan a guest ticket QR code. EventHub verifies it before recording entry.</p>
-            <div className="mt-4 overflow-hidden rounded-xl bg-gray-950">
-                <video ref={videoRef} className="aspect-video w-full object-cover" autoPlay muted playsInline aria-label="Ticket QR scanner camera preview" />
-            </div>
-            <div className="mt-4 flex flex-wrap gap-3">
-                {!scanning ? (
-                    <button type="button" onClick={startScanner} disabled={checking} className="rounded-lg bg-gray-900 px-4 py-2 font-bold text-white disabled:opacity-50">
-                        {checking ? 'Checking ticket…' : 'Start camera scanner'}
-                    </button>
-                ) : (
-                    <button type="button" onClick={stopScanner} className="rounded-lg border border-gray-300 px-4 py-2 font-semibold text-gray-800">Stop scanner</button>
-                )}
-                {error && <button type="button" onClick={() => { setError(''); void startScanner(); }} className="rounded-lg border border-gray-300 px-4 py-2 font-semibold text-gray-800">Try again</button>}
-            </div>
-            {error && <p role="alert" className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-800">{error}</p>}
-            {result && (
-                <div role={result.success ? 'status' : 'alert'} className={`mt-3 rounded-lg p-3 text-sm ${result.success ? 'bg-green-50 text-green-800' : 'bg-amber-50 text-amber-900'}`}>
-                    <p className="font-bold">{result.message}</p>
-                    {result.eventTitle && <p className="mt-1">{result.eventTitle}</p>}
-                    {result.attendeeName && <p>Attendee: {result.attendeeName}</p>}
-                    {result.checkedInAt && <p>Checked in at {new Date(result.checkedInAt).toLocaleTimeString()}</p>}
+        <Surface as="section" aria-labelledby="ticket-scanner-heading" className="min-w-0 overflow-hidden">
+            <div className="flex flex-col gap-3 border-b border-border p-5 sm:flex-row sm:items-start sm:justify-between sm:p-6">
+                <div>
+                    <p className="mb-1 font-interface text-xs font-bold uppercase tracking-wide text-text-muted">Guest entry</p>
+                    <h2 id="ticket-scanner-heading" className="eh-section-title">Ticket check-in</h2>
+                    <p className="mt-2 max-w-2xl text-sm text-text-secondary">Scan a guest ticket QR code. EventHub verifies it before recording entry.</p>
                 </div>
-            )}
-        </section>
+                <span className={`inline-flex min-h-8 shrink-0 items-center px-3 font-interface text-xs font-bold uppercase tracking-wide ${scanning ? 'bg-success-surface text-success' : checking ? 'bg-info-surface text-info' : 'bg-surface-muted text-text-secondary'}`} role="status">
+                    {scanning ? 'Scanner active' : checking ? 'Checking ticket' : 'Scanner stopped'}
+                </span>
+            </div>
+
+            <div className="grid min-w-0 gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(14rem,18rem)]">
+                <div className="min-w-0">
+                    <div className="overflow-hidden bg-brand-navy">
+                        <video ref={videoRef} className="aspect-video max-h-[min(60vh,42rem)] w-full object-cover" autoPlay muted playsInline aria-label="Ticket QR scanner camera preview" />
+                    </div>
+                    {checking && <Feedback tone="loading" className="mt-3">Checking ticket with EventHub…</Feedback>}
+                    {error && <Feedback tone="error" className="mt-3">{error}</Feedback>}
+                    {result && (
+                        <Feedback tone={result.success ? 'success' : 'warning'} role={result.success ? 'status' : 'alert'} className="mt-3">
+                            <p className="font-bold">{result.message}</p>
+                            {result.eventTitle && <p className="mt-1">{result.eventTitle}</p>}
+                            {result.attendeeName && <p>Attendee: {result.attendeeName}</p>}
+                            {result.checkedInAt && <p>Checked in at {new Date(result.checkedInAt).toLocaleTimeString()}</p>}
+                        </Feedback>
+                    )}
+                </div>
+
+                <div className="flex min-w-0 flex-col gap-4">
+                    <div>
+                        <h3 className="font-interface text-sm font-bold text-text-primary">Camera instructions</h3>
+                        <ol className="mt-2 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-text-secondary">
+                            <li>Start the scanner and allow camera access when your browser asks.</li>
+                            <li>Hold the ticket QR code in view of the camera.</li>
+                            <li>Wait for the verification result before scanning another ticket.</li>
+                        </ol>
+                    </div>
+                    <div className="mt-auto flex flex-col gap-2">
+                        {!scanning ? (
+                            <Button type="button" onClick={startScanner} disabled={checking} loading={checking} loadingText="Checking ticket…" className="w-full">Start camera scanner</Button>
+                        ) : (
+                            <Button type="button" variant="outline" onClick={stopScanner} className="w-full">Stop scanner</Button>
+                        )}
+                        {error && <Button type="button" variant="outline" onClick={() => { setError(''); void startScanner(); }} className="w-full">Try again</Button>}
+                    </div>
+                </div>
+            </div>
+        </Surface>
     );
 };
 

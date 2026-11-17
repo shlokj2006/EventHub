@@ -1,0 +1,236 @@
+/* Keep display in the component layer so responsive display utilities can override it. */
+@layer components {
+  .eh-button {
+    display: inline-flex;
+  }
+}
+
+.eh-button {
+  min-height: var(--eh-touch-target);
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  padding: 0.625rem 1rem;
+  font-family: var(--font-interface);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  text-decoration: none;
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.eh-button:disabled {
+  color: var(--color-disabled-text);
+  background: var(--color-disabled);
+  cursor: not-allowed;
+}
+
+.eh-button--primary {
+  color: var(--color-brand-white);
+  background: var(--color-brand-navy);
+}
+
+.eh-button--primary:hover:not(:disabled) {
+  background: #1b2e52;
+}
+
+.eh-button--secondary {
+  color: var(--color-brand-navy);
+  background: var(--color-brand-gold-light);
+}
+
+.eh-button--secondary:hover:not(:disabled) {
+  background: #f5c878;
+}
+
+.eh-button--outline {
+  border-color: var(--color-brand-navy);
+  color: var(--color-brand-navy);
+  background: transparent;
+}
+
+.eh-button--outline:hover:not(:disabled) {
+  background: var(--color-info-surface);
+}
+
+.eh-button--destructive {
+  color: var(--color-brand-white);
+  background: var(--color-error);
+}
+
+.eh-button--destructive:hover:not(:disabled) {
+  background: #87212c;
+}
+
+.eh-button--dark {
+  border-color: rgb(255 255 255 / 55%);
+  color: var(--color-brand-white);
+  background: transparent;
+}
+
+.eh-button--dark:hover:not(:disabled) {
+  color: var(--color-brand-white);
+  background: rgb(255 255 255 / 10%);
+}
+
+.eh-button--muted {
+  color: var(--color-disabled-text);
+  background: var(--color-disabled);
+}
+
+.eh-control {
+  display: block;
+  width: 100%;
+  min-height: var(--eh-control-height);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  padding: 0.625rem 0.75rem;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.eh-control::placeholder {
+  color: var(--color-text-muted);
+  opacity: 1;
+}
+
+.eh-control:disabled {
+  color: var(--color-disabled-text);
+  background: var(--color-disabled);
+  cursor: not-allowed;
+}
+
+.eh-control[aria-invalid="true"] {
+  border-color: var(--color-error);
+}
+
+textarea.eh-control {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.eh-field {
+  display: grid;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.eh-field__label {
+  color: var(--color-text-primary);
+  font-family: var(--font-interface);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.eh-field__help {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.eh-field__error {
+  color: var(--color-error);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.eh-feedback {
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  padding: 0.875rem 1rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.eh-feedback--success {
+  border-color: #b8dfc8;
+  color: var(--color-success);
+  background: var(--color-success-surface);
+}
+
+.eh-feedback--warning {
+  border-color: #ead59a;
+  color: var(--color-warning);
+  background: var(--color-warning-surface);
+}
+
+.eh-feedback--error {
+  border-color: #f0c2c6;
+  color: var(--color-error);
+  background: var(--color-error-surface);
+}
+
+.eh-feedback--info,
+.eh-feedback--loading {
+  border-color: #c9d9e9;
+  color: var(--color-info);
+  background: var(--color-info-surface);
+}
+
+.eh-feedback--empty {
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
+  background: var(--color-surface-muted);
+}
+
+.eh-surface {
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.eh-nav-dark :where(a, button):focus-visible {
+  outline-color: var(--color-brand-gold-light);
+}
+
+.eh-nav-dark .eh-admin-navigation-link {
+  color: var(--color-brand-white);
+}
+
+.eh-nav-dark .eh-admin-navigation-link:hover:not([aria-current="page"]) {
+  color: var(--color-brand-white);
+  background-color: rgb(255 255 255 / 12%);
+}
+
+.eh-nav-dark .eh-admin-navigation-link[aria-current="page"] {
+  color: var(--color-brand-navy);
+  background-color: var(--color-brand-gold-light);
+}
+
+.eh-nav-dark .eh-admin-navigation-link[aria-disabled="true"] {
+  color: rgb(255 255 255 / 65%);
+  cursor: not-allowed;
+}
+
+.eh-button__spinner {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: eh-spin 700ms linear infinite;
+}
+
+@keyframes eh-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eh-button__spinner {
+    animation: none;
+    border-right-color: currentColor;
+  }
+}

@@ -1,9 +1,13 @@
 import { useState, useEffect, useContext, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/axios';
 import { AuthContext } from '../context/AuthContext';
 import { FaCalendarAlt, FaMapMarkerAlt, FaChair, FaMoneyBillWave } from 'react-icons/fa';
 import { estimateBookingTotal, parseBookingQuantity, reconcileAttendees, resolveQuantityDraft } from '../utils/bookingForm';
+import Button from '../components/ui/Button';
+import Feedback from '../components/ui/Feedback';
+import FormControl from '../components/ui/FormControl';
+import { PageHeading, Surface } from '../components/ui/LayoutPrimitives';
 
 const EventDetail = () => {
     const { id } = useParams();
@@ -91,80 +95,80 @@ const EventDetail = () => {
         }
     };
 
-    if (loading) return <div className="text-center py-20 text-xl font-semibold">Loading...</div>;
-    if (error && !event) return <div className="text-center py-20 text-xl text-red-500">{error || 'Event not found'}</div>;
+    if (loading) return <Feedback tone="loading" className="my-8">Loading event details…</Feedback>;
+    if (error && !event) return <div className="mx-auto max-w-2xl space-y-5 py-12"><Feedback tone="error">{error || 'Event not found'}</Feedback><Link to="/" className="eh-button eh-button--outline">Back to events</Link></div>;
 
     const isSoldOut = event.availableSeats <= 0;
 
     return (
-        <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden mt-8">
+        <Surface as="article" className="mx-auto max-w-6xl overflow-hidden">
             {event.image ? (
-                <img src={event.image} alt={event.title} className="w-full h-80 object-cover" />
+                <img src={event.image} alt={event.title} className="aspect-[16/7] max-h-[32rem] w-full object-cover object-center" />
             ) : (
-                <div className="w-full h-64 bg-gray-900 flex items-center justify-center text-white/50 text-6xl font-black uppercase tracking-widest">
+                <div className="flex aspect-[16/7] max-h-[32rem] w-full items-center justify-center bg-brand-navy px-5 text-center font-display text-5xl uppercase tracking-wide text-brand-gold-light sm:text-7xl">
                     {event.category}
                 </div>
             )}
 
-            <div className="p-8 md:p-12">
-                <div className="flex flex-col md:flex-row justify-between items-start mb-8 gap-6">
-                    <div>
-                        <div className="inline-block bg-gray-200 text-gray-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide mb-3">
+            <div className="p-4 sm:p-7 lg:p-10">
+                <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(19rem,24rem)]">
+                    <div className="min-w-0">
+                        <div className="mb-3 inline-block bg-brand-gold-light px-3 py-1 font-interface text-xs font-bold uppercase tracking-wide text-brand-navy">
                             {event.category}
                         </div>
-                        <h1 className="text-4xl font-extrabold text-gray-900 mb-4">{event.title}</h1>
-                        <p className="text-gray-600 text-lg leading-relaxed mb-6">{event.description}</p>
+                        <PageHeading className="break-words">{event.title}</PageHeading>
+                        <p className="eh-body mt-5 max-w-3xl whitespace-pre-line text-text-secondary">{event.description}</p>
                     </div>
 
-                    <div className="bg-gray-50 p-6 rounded-xl border border-gray-100 min-w-0 w-full md:w-auto md:min-w-[300px] md:max-w-[440px] shrink-0 shadow-sm max-h-[calc(100dvh-9rem)] overflow-y-auto overscroll-contain">
-                        <h3 className="text-xl font-bold text-gray-800 mb-6">Booking Details</h3>
+                    <aside className="min-w-0 w-full self-start border border-border bg-surface-muted p-4 sm:p-6">
+                        <h2 className="eh-section-title mb-6 text-text-primary">Booking details</h2>
 
-                        <div className="space-y-4 mb-8">
-                            <div className="flex items-center gap-4 text-gray-600">
-                                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-900 shrink-0">
-                                    <FaMoneyBillWave />
+                        <div className="mb-8 space-y-4">
+                            <div className="flex items-center gap-4 text-text-secondary">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface text-brand-navy">
+                                    <FaMoneyBillWave aria-hidden="true" />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-semibold text-gray-400 uppercase">Ticket Price</p>
-                                    <p className="font-bold text-gray-800 text-lg">{event.ticketPrice === 0 ? <span className="text-green-500">Free</span> : `₹${event.ticketPrice}`}</p>
+                                    <p className="font-interface text-xs font-bold uppercase tracking-wide text-text-muted">Ticket price</p>
+                                    <p className="text-lg font-bold text-text-primary">{event.ticketPrice === 0 ? <span className="text-success">Free</span> : `₹${event.ticketPrice}`}</p>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-4 text-gray-600">
-                                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-900 shrink-0">
-                                    <FaChair />
+                            <div className="flex items-center gap-4 text-text-secondary">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface text-brand-navy">
+                                    <FaChair aria-hidden="true" />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-semibold text-gray-400 uppercase">Availability</p>
-                                    <p className="font-bold text-gray-800">
-                                        <span className={event.availableSeats < 10 ? 'text-orange-500' : ''}>{event.availableSeats}</span> / {event.totalSeats}
+                                    <p className="font-interface text-xs font-bold uppercase tracking-wide text-text-muted">Availability</p>
+                                    <p className="font-bold text-text-primary">
+                                        <span className={event.availableSeats < 10 ? 'text-warning' : ''}>{event.availableSeats}</span> / {event.totalSeats}
                                     </p>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-4 text-gray-600">
-                                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-900 shrink-0">
-                                    <FaCalendarAlt />
+                            <div className="flex items-center gap-4 text-text-secondary">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface text-brand-navy">
+                                    <FaCalendarAlt aria-hidden="true" />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-semibold text-gray-400 uppercase">Date</p>
-                                    <p className="font-bold text-gray-800">{new Date(event.date).toLocaleDateString()}</p>
+                                    <p className="font-interface text-xs font-bold uppercase tracking-wide text-text-muted">Date</p>
+                                    <p className="font-bold text-text-primary">{new Date(event.date).toLocaleDateString()}</p>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-4 text-gray-600">
-                                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-900 shrink-0">
-                                    <FaMapMarkerAlt />
+                            <div className="flex items-center gap-4 text-text-secondary">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface text-brand-navy">
+                                    <FaMapMarkerAlt aria-hidden="true" />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-semibold text-gray-400 uppercase">Location</p>
-                                    <p className="font-bold text-gray-800">{event.location}</p>
+                                    <p className="font-interface text-xs font-bold uppercase tracking-wide text-text-muted">Location</p>
+                                    <p className="font-bold text-text-primary break-words">{event.location}</p>
                                 </div>
                             </div>
                         </div>
 
                         {user?.role === 'event_staff' ? (
-                            <p role="status" className="border-t border-gray-200 pt-4 text-sm text-gray-600">Event Staff accounts can scan tickets for assigned events and cannot make bookings.</p>
+                            <Feedback tone="info" className="border-x-0 border-b-0 px-0">Event Staff accounts can scan tickets for assigned events and cannot make bookings.</Feedback>
                         ) : (
                         <>
                         <div className="space-y-3 border-t border-gray-200 pt-4">
@@ -199,11 +203,11 @@ const EventDetail = () => {
                                         else setQuantityDraft(String(next));
                                     }}
                                     aria-describedby="ticket-quantity-help"
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-gray-700"
+                                    className="eh-control"
                                 />
-                                <p id="ticket-quantity-help" className="text-xs text-gray-500">Current available seats: {event.availableSeats}. Availability is checked again before booking.</p>
-                                {quantityError && <p role="alert" className="text-sm text-red-700">{quantityError}</p>}
-                                <div className="rounded-lg bg-white p-3 text-sm text-gray-600">
+                                <p id="ticket-quantity-help" className="eh-meta">Current available seats: {event.availableSeats}. Availability is checked again before booking.</p>
+                                {quantityError && <Feedback tone="error" className="p-3">{quantityError}</Feedback>}
+                                <div className="border border-border bg-surface p-3 text-sm text-text-secondary">
                                     <p>Unit price: <strong>{event.ticketPrice === 0 ? 'Free' : `${event.currency || 'INR'} ${event.ticketPrice}`}</strong></p>
                                     <p>Quantity: <strong>{quantity}</strong></p>
                                     <p>Estimated total: <strong>{event.ticketPrice === 0 ? 'Free' : `${event.currency || 'INR'} ${estimateBookingTotal(event.ticketPrice, quantity).toFixed(2)}`}</strong></p>
@@ -211,12 +215,10 @@ const EventDetail = () => {
                                 </div>
                                 <div className="space-y-3">
                                     {attendees.map((attendee, index) => (
-                                        <fieldset key={index} className="rounded-xl border border-gray-200 p-3">
-                                            <legend className="px-1 text-sm font-bold text-gray-800">Attendee {index + 1}</legend>
-                                            <label htmlFor={`attendee-${index}-name`} className="block text-xs font-semibold text-gray-600 mb-1">Full name *</label>
-                                            <input id={`attendee-${index}-name`} type="text" required maxLength={120} value={attendee.name} disabled={showOTP} onChange={(e) => setAttendees((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, name: e.target.value } : item))} className="w-full px-3 py-2 rounded-lg border border-gray-200 mb-2" />
-                                            <label htmlFor={`attendee-${index}-email`} className="block text-xs font-semibold text-gray-600 mb-1">Email (optional)</label>
-                                            <input id={`attendee-${index}-email`} type="email" maxLength={254} value={attendee.email} disabled={showOTP} onChange={(e) => setAttendees((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, email: e.target.value } : item))} className="w-full px-3 py-2 rounded-lg border border-gray-200" />
+                                        <fieldset key={index} className="grid gap-3 border border-border bg-surface p-3">
+                                            <legend className="px-1 font-interface text-sm font-bold text-text-primary">Attendee {index + 1}</legend>
+                                            <FormControl id={`attendee-${index}-name`} label="Full name *" type="text" required maxLength={120} value={attendee.name} disabled={showOTP} onChange={(e) => setAttendees((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, name: e.target.value } : item))} />
+                                            <FormControl id={`attendee-${index}-email`} label="Email (optional)" type="email" maxLength={254} value={attendee.email} disabled={showOTP} onChange={(e) => setAttendees((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, email: e.target.value } : item))} />
                                         </fieldset>
                                     ))}
                                 </div>
@@ -224,13 +226,15 @@ const EventDetail = () => {
 
                         {showOTP && (
                             <div className="mb-4">
-                                <label htmlFor="booking-otp" className="block text-sm font-semibold text-gray-700 mb-2">Enter OTP to Confirm</label>
-                                <input
+                                <FormControl
                                     id="booking-otp"
+                                    label="Enter OTP to confirm"
                                     type="text"
+                                    inputMode="numeric"
+                                    autoComplete="one-time-code"
                                     required
                                     placeholder="6-digit code"
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-gray-700 transition shadow-sm font-bold tracking-widest text-center text-lg"
+                                    className="text-center font-bold tracking-widest"
                                     value={otp}
                                     onChange={(e) => setOtp(e.target.value)}
                                     maxLength="6"
@@ -238,24 +242,24 @@ const EventDetail = () => {
                             </div>
                         )}
 
-                        <button
+                        <Button
+                            type="button"
                             onClick={handleBooking}
                             disabled={isSoldOut || bookingLoading || (showOTP && !otp)}
-                            className={`sticky bottom-0 w-full py-4 px-6 font-bold text-lg transition shadow-lg bg-gray-50 ${isSoldOut || (successMsg && !showOTP)
-                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                : 'bg-gray-900 hover:bg-black text-white hover:shadow-xl hover:-translate-y-1'
-                                }`}
+                            loading={bookingLoading}
+                            loadingText="Processing..."
+                            className={`w-full ${successMsg && !showOTP ? 'eh-button--muted' : ''}`}
                         >
-                            {bookingLoading ? 'Processing...' : (showOTP ? 'Verify OTP & Confirm' : (successMsg && !showOTP ? 'Request Sent' : (isSoldOut ? 'Sold Out' : 'Confirm Registration')))}
-                        </button>
-                        {error && <p className="text-red-500 mt-4 text-center font-medium bg-red-50 p-2 rounded">{error}</p>}
-                        {successMsg && <p className="text-green-600 mt-4 text-center font-medium bg-green-50 p-2 rounded">{successMsg}</p>}
+                            {showOTP ? 'Verify OTP & Confirm' : (successMsg && !showOTP ? 'Request Sent' : (isSoldOut ? 'Sold Out' : 'Confirm Registration'))}
+                        </Button>
+                        {error && <Feedback tone="error" className="mt-4">{error}</Feedback>}
+                        {successMsg && <Feedback tone="success" className="mt-4">{successMsg}</Feedback>}
                         </>
                         )}
+                </aside>
                 </div>
             </div>
-        </div>
-        </div>
+        </Surface>
     );
 };
 
