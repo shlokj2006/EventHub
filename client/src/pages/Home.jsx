@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../utils/axios';
-import { FaCalendarAlt, FaMapMarkerAlt, FaSearch, FaRegClock, FaTicketAlt, FaShieldAlt } from 'react-icons/fa';
+import { FaCalendarAlt, FaMapMarkerAlt, FaTicketAlt } from 'react-icons/fa';
+import Button from '../components/ui/Button';
+import Feedback from '../components/ui/Feedback';
+import FormControl from '../components/ui/FormControl';
+import { PageHeading, Surface } from '../components/ui/LayoutPrimitives';
 
 const Home = () => {
     const [events, setEvents] = useState([]);
@@ -45,130 +49,79 @@ const Home = () => {
     }, [search, fetchEvents]);
 
     return (
-        <div className="flex flex-col min-h-screen">
-            {/* Hero Section */}
-            <div className="relative bg-black text-white rounded-3xl overflow-hidden mb-12 shadow-2xl">
-                <div className="absolute inset-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1459749411175-04bf5292ceea?q=80&w=3000&auto=format&fit=crop')] bg-cover bg-center"></div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent"></div>
-                <div className="relative p-10 md:p-20 text-center flex flex-col items-center z-10">
-                    <span className="bg-white/20 text-white backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase mb-6 border border-white/20">Welcome to EventHub</span>
-                    <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight tracking-tight drop-shadow-lg">
-                        Find Your Next <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-200 to-gray-500">Unforgettable</span> Experience
-                    </h1>
-                    <p className="text-gray-300 text-lg md:text-xl mb-10 max-w-2xl mx-auto font-light leading-relaxed">
-                        Discover the best tech conferences, late-night music festivals, and hands-on workshops happening directly in your area. Secure your spot today.
-                    </p>
+        <div className="space-y-12 sm:space-y-16">
+            <section className="relative isolate overflow-hidden bg-brand-navy text-white">
+                <div aria-hidden="true" className="absolute inset-0 -z-20 bg-[url('https://images.unsplash.com/photo-1459749411175-04bf5292ceea?q=80&w=3000&auto=format&fit=crop')] bg-cover bg-center" />
+                <div aria-hidden="true" className="absolute inset-0 -z-10 bg-brand-navy/85" />
+                <div className="grid min-h-[28rem] items-end gap-10 p-5 sm:p-8 md:grid-cols-[minmax(0,1fr)_minmax(16rem,24rem)] md:p-12 lg:p-16">
+                    <div className="max-w-3xl">
+                        <p className="mb-5 font-interface text-sm font-bold uppercase tracking-[0.18em] text-brand-gold-light">Find your next gathering</p>
+                        <h1 className="font-display text-5xl leading-[0.95] text-white sm:text-6xl lg:text-7xl">
+                            Make room for <span className="text-brand-gold-light">what moves you.</span>
+                        </h1>
+                        <p className="mt-6 max-w-xl text-base leading-relaxed text-white/85 sm:text-lg">
+                            Browse upcoming events, find the details that matter, and choose what you want to be part of.
+                        </p>
+                    </div>
+                    <div className="border-l-2 border-brand-gold-light pl-5 md:justify-self-end md:max-w-sm">
+                        <p className="mb-3 font-interface text-sm font-semibold uppercase tracking-wide text-white">Start exploring</p>
+                        <FormControl id="event-search" label="Search events by title" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Try a title or keyword" className="bg-white" />
+                        <p className="mt-3 text-sm text-white/75">Results update as you type.</p>
+                    </div>
+                </div>
+            </section>
 
-                    <div className="w-full max-w-2xl mx-auto relative flex items-center shadow-2xl group">
-                        <FaSearch className="absolute left-6 text-gray-500 text-xl group-focus-within:text-black transition-colors" />
-                        <input
-                            type="text"
-                            placeholder="Search events by title..."
-                            className="w-full pl-16 pr-6 py-5 rounded-full text-lg text-black bg-white/95 backdrop-blur-sm border-2 border-transparent focus:border-gray-500 focus:outline-none transition-all placeholder-gray-400 font-medium"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
-                    </div>
-                </div>
-            </div>
+            <section aria-label="Using EventHub" className="grid gap-5 border-y border-border py-7 sm:grid-cols-3 sm:gap-7">
+                <div><p className="font-interface text-xs font-bold uppercase tracking-[0.14em] text-brand-navy">01 / Discover</p><p className="mt-2 text-sm leading-relaxed text-text-secondary">Browse current listings and open an event for its details.</p></div>
+                <div><p className="font-interface text-xs font-bold uppercase tracking-[0.14em] text-brand-navy">02 / Register</p><p className="mt-2 text-sm leading-relaxed text-text-secondary">Choose ticket quantity and provide attendee information on the event page.</p></div>
+                <div><p className="font-interface text-xs font-bold uppercase tracking-[0.14em] text-brand-navy">03 / Keep track</p><p className="mt-2 text-sm leading-relaxed text-text-secondary">Review bookings and available ticket actions from your dashboard.</p></div>
+            </section>
 
-            {/* Why Choose Us / Features row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16 px-4">
-                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center hover:-translate-y-1 transition duration-300">
-                    <div className="w-16 h-16 bg-gray-900 text-white rounded-2xl flex items-center justify-center text-2xl mb-6 shadow-md shadow-gray-200/50">
-                        <FaRegClock />
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-3">Fast Booking</h3>
-                    <p className="text-gray-500 text-sm leading-relaxed">Secure your tickets instantly with our fast streamlined booking infrastructure built for speed.</p>
-                </div>
-                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center hover:-translate-y-1 transition duration-300">
-                    <div className="w-16 h-16 bg-gray-900 text-white rounded-2xl flex items-center justify-center text-2xl mb-6 shadow-md shadow-gray-200/50">
-                        <FaTicketAlt />
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-3">Seamless Access</h3>
-                    <p className="text-gray-500 text-sm leading-relaxed">Download tickets instantly or manage them right from your personal dashboard with easily.</p>
-                </div>
-                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center hover:-translate-y-1 transition duration-300">
-                    <div className="w-16 h-16 bg-gray-900 text-white rounded-2xl flex items-center justify-center text-2xl mb-6 shadow-md shadow-gray-200/50">
-                        <FaShieldAlt />
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-3">Secure Platform</h3>
-                    <p className="text-gray-500 text-sm leading-relaxed">All transactions and registrations are bounded by cutting-edge security and 2FA OTP tech.</p>
-                </div>
-            </div>
-
-            <div className="flex items-center justify-between mb-8 px-2 border-b border-gray-200 pb-4">
-                <h2 className="text-3xl font-extrabold text-gray-900">Upcoming Events</h2>
-                <div className="text-gray-500 font-medium">{events.length} results found</div>
+            <section aria-labelledby="events-heading">
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
+                <div><p className="mb-2 font-interface text-xs font-bold uppercase tracking-[0.16em] text-text-muted">The calendar</p><PageHeading id="events-heading" as="h2" className="eh-section-title">Upcoming events</PageHeading></div>
+                <p className="text-sm font-medium text-text-secondary" aria-live="polite">{loading ? 'Searching…' : `${events.length} ${events.length === 1 ? 'event' : 'events'}`}</p>
             </div>
 
             {loading ? (
-                <div className="text-center py-20 text-xl font-semibold text-gray-600">Loading events...</div>
+                <Feedback tone="loading">Loading events…</Feedback>
             ) : error ? (
-                <div role="alert" className="text-center py-20 text-xl text-red-700">
-                    <p>{error}</p>
-                    <button type="button" onClick={() => fetchEvents(search)} className="mt-4 rounded-lg bg-gray-900 px-5 py-2 text-base font-semibold text-white hover:bg-black">
-                        Try again
-                    </button>
-                </div>
+                <div className="space-y-4"><Feedback tone="error">{error}</Feedback><Button type="button" onClick={() => fetchEvents(search)}>Try again</Button></div>
             ) : events.length === 0 ? (
-                <div className="text-center py-20 text-xl text-gray-500">No events found matching your search.</div>
+                <Feedback tone="empty">No events found matching your search.</Feedback>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-7">
                     {events.map(event => (
-                        <div key={event._id} className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition flex flex-col">
-                            <div className="h-48 bg-gray-200 overflow-hidden relative">
+                        <Surface as="article" key={event._id} className="group flex min-w-0 flex-col overflow-hidden transition-shadow duration-standard hover:shadow-panel">
+                            <div className="relative aspect-[16/10] overflow-hidden bg-surface-muted">
                                 {event.image ? (
-                                    <img src={event.image} alt={event.title} className="w-full h-full object-cover" />
+                                    <img src={event.image} alt={event.title} className="h-full w-full object-cover transition-transform duration-standard group-hover:scale-[1.02]" />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-600 font-bold text-2xl">
+                                    <div className="flex h-full items-center justify-center bg-brand-navy px-4 text-center font-display text-4xl text-brand-gold-light">
                                         {event.category || 'Event'}
                                     </div>
                                 )}
-                                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-bold shadow-sm">
-                                    {event.ticketPrice === 0 ? <span className="text-green-600">FREE</span> : <span className="text-gray-900">₹{event.ticketPrice}</span>}
-                                </div>
+                                <span className="absolute bottom-3 left-3 bg-surface px-3 py-1 font-interface text-sm font-bold text-brand-navy">{event.ticketPrice === 0 ? 'Free' : `₹${event.ticketPrice}`}</span>
                             </div>
-                            <div className="p-6 flex-grow flex flex-col">
-                                <div className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">{event.category}</div>
-                                <h2 className="text-xl font-bold text-gray-800 mb-3">{event.title}</h2>
-                                <div className="flex flex-col gap-2 mb-4 text-gray-600 text-sm">
-                                    <div className="flex items-center gap-2">
-                                        <FaCalendarAlt className="text-gray-400" />
-                                        <span>{new Date(event.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <FaMapMarkerAlt className="text-gray-400" />
-                                        <span>{event.location}</span>
-                                    </div>
-                                </div>
-                                <div className="mt-auto">
-                                    <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                                        <div className="bg-gray-700 h-2 rounded-full" style={{ width: `${(event.availableSeats / event.totalSeats) * 100}%` }}></div>
-                                    </div>
-                                    <p className="text-xs text-gray-500 mb-4">{event.availableSeats} of {event.totalSeats} seats remaining</p>
-                                    <Link to={`/events/${event._id}`} className="block w-full text-center bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold py-2 rounded-lg transition">
-                                        View Details
-                                    </Link>
-                                </div>
+                            <div className="flex flex-1 flex-col p-5 sm:p-card">
+                                <p className="mb-2 font-interface text-xs font-bold uppercase tracking-[0.12em] text-text-muted">{event.category || 'Event'}</p>
+                                <h3 className="break-words text-xl font-bold leading-snug text-text-primary">{event.title}</h3>
+                                <dl className="mt-4 space-y-2 text-sm text-text-secondary">
+                                    <div className="flex min-w-0 items-start gap-2"><dt className="sr-only">Date</dt><FaCalendarAlt aria-hidden="true" className="mt-0.5 shrink-0 text-brand-navy" /><dd>{new Date(event.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</dd></div>
+                                    <div className="flex min-w-0 items-start gap-2"><dt className="sr-only">Location</dt><FaMapMarkerAlt aria-hidden="true" className="mt-0.5 shrink-0 text-brand-navy" /><dd className="break-words">{event.location}</dd></div>
+                                </dl>
+                                <p className="mt-3 text-sm text-text-muted">{event.availableSeats} seats remaining</p>
+                                <Link to={`/events/${event._id}`} className="eh-button eh-button--outline mt-5 w-full">View event details</Link>
                             </div>
-                        </div>
+                        </Surface>
                     ))}
                 </div>
             )}
+            </section>
 
-            {/* Footer Section */}
-            <footer className="mt-auto pt-16 pb-8 border-t border-gray-200 text-center">
-                <div className="flex justify-center items-center gap-2 mb-4">
-                    <FaTicketAlt className="text-gray-800 text-2xl" />
-                    <span className="text-xl font-bold text-gray-900">EventHub</span>
-                </div>
-                <p className="text-gray-500 text-sm mb-6 max-w-md mx-auto">
-                    The simplest, most dynamic way to manage, discover, and host world-class events in your local city. Let's make memories together.
-                </p>
-                <div className="text-xs text-gray-400 font-medium uppercase tracking-wider">
-                    &copy; {new Date().getFullYear()} EventHub Platform. All rights reserved.
-                </div>
+            <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5 text-sm text-text-muted">
+                <span className="inline-flex items-center gap-2 font-interface font-bold text-brand-navy"><FaTicketAlt aria-hidden="true" /> EventHub</span>
+                <span>© {new Date().getFullYear()} EventHub</span>
             </footer>
         </div>
     );

@@ -37,7 +37,6 @@ eligibility, and check-in. See [`ARCHITECTURE_AND_STRUCTURE.md`](ARCHITECTURE_AN
 
 - Admin approval records a payment status manually. There is no real online
   gateway, gateway verification, webhook, or payment reconciliation.
-- A full-site UX redesign and consistency pass is deferred.
 - Reservation workflows are recoverable but not cross-document atomic; the
   app does not rely on MongoDB transactions.
 - No event-date ticket validity window or automated ticket expiry is defined.
@@ -48,8 +47,10 @@ eligibility, and check-in. See [`ARCHITECTURE_AND_STRUCTURE.md`](ARCHITECTURE_AN
 
 ## Deferred next-version features
 
-The next planned version may include a full-site UX redesign and real online
-payment integration. Payment verification, gateway webhooks, and reconciliation
-must be designed with the chosen provider. These are future work, not part of
-the current scope; the current admin-selected `paid` value is not gateway-
-verified. See [`DEVELOPMENT_ROADMAP.md`](DEVELOPMENT_ROADMAP.md).
+The frontend redesign is implemented on the current branch; see
+[`FRONTEND_DOCUMENTATION.md`](FRONTEND_DOCUMENTATION.md). Future work may
+include real online payment integration. Payment verification, gateway
+webhooks, and reconciliation must be designed with the chosen provider. These
+are future work, not part of the current scope; the current admin-selected
+`paid` value is not gateway-verified. See
+[`DEVELOPMENT_ROADMAP.md`](DEVELOPMENT_ROADMAP.md).

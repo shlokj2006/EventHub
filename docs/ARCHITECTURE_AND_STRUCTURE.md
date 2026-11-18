@@ -17,6 +17,9 @@ can point Axios to an API base ending in `/api`; without it the client uses
 relative `/api` URLs. `vercel.json` maps `/api/*` to the server service and
 other paths to the Vite-built client.
 
+For the frontend's actual routes, layouts, design tokens, and responsive
+navigation, see [`FRONTEND_DOCUMENTATION.md`](FRONTEND_DOCUMENTATION.md).
+
 Express connects to MongoDB before processing API requests. Authentication
 middleware validates JWTs, loads the current User document, and checks the
 current role and token version. Controllers validate requests and call Mongoose
@@ -27,10 +30,12 @@ document MongoDB transactions.
 
 ```text
 client/src/
-  components/       Navbar, TicketScanner
+  components/       Navbar, Footer, TicketScanner, shared UI controls
   context/          AuthContext and session handling
-  pages/            public, user, admin, and Event Staff screens
-  utils/            Axios client, booking forms, scanner parsing, navigation
+  layouts/          Public, User, Admin, and Event Staff application shells
+  pages/            public, user, admin, and Event Staff route screens
+  styles/           design tokens, typography, shared component styles
+  utils/            Axios client, session, booking, scanner, navigation helpers
 server/
   controllers/      auth, events, bookings, staff, and tickets
   middleware/       JWT roles, password-reset limits, cron authorization

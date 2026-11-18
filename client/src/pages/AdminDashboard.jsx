@@ -2,6 +2,10 @@ import { useState, useEffect, useContext, useCallback } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import api from '../utils/axios';
 import { Link, useNavigate } from 'react-router-dom';
+import Button from '../components/ui/Button';
+import Feedback from '../components/ui/Feedback';
+import FormControl from '../components/ui/FormControl';
+import { PageHeading, Surface } from '../components/ui/LayoutPrimitives';
 
 const AdminDashboard = () => {
     const { user } = useContext(AuthContext);
@@ -16,6 +20,9 @@ const AdminDashboard = () => {
     const [editingEventId, setEditingEventId] = useState(null);
     const [eventNotice, setEventNotice] = useState('');
     const [eventNoticeError, setEventNoticeError] = useState(false);
+    const [bookingNotice, setBookingNotice] = useState('');
+    const [bookingNoticeError, setBookingNoticeError] = useState(false);
+    const [cancellingBookingId, setCancellingBookingId] = useState(null);
 
     const [showEventForm, setShowEventForm] = useState(false);
     const [formData, setFormData] = useState({
@@ -129,11 +136,15 @@ const AdminDashboard = () => {
 
     const handleConfirmBooking = async (id, paymentStatus) => {
         setApprovingBookingId(id);
+        setBookingNotice('');
         try {
             await api.put(`/bookings/${id}/confirm`, { paymentStatus });
+            setBookingNotice(paymentStatus === 'paid' ? 'Booking confirmed and marked paid.' : 'Booking confirmed and marked unpaid.');
+            setBookingNoticeError(false);
             fetchData();
         } catch (error) {
-            alert(error.response?.data?.message || 'Error confirming booking');
+            setBookingNotice(error.response?.data?.message || 'Error confirming booking');
+            setBookingNoticeError(true);
         } finally {
             setApprovingBookingId(null);
         }
@@ -141,207 +152,206 @@ const AdminDashboard = () => {
 
     const handleCancelBooking = async (id) => {
         if (window.confirm('Cancel this user\'s booking request?')) {
+            setCancellingBookingId(id);
+            setBookingNotice('');
             try {
                 await api.delete(`/bookings/${id}`);
+                setBookingNotice('Booking cancelled successfully.');
+                setBookingNoticeError(false);
                 fetchData();
             } catch (error) {
-                alert(error.response?.data?.message || 'Error cancelling booking');
+                setBookingNotice(error.response?.data?.message || 'Error cancelling booking');
+                setBookingNoticeError(true);
+            } finally {
+                setCancellingBookingId(null);
             }
         }
     };
 
     return (
-        <div className="max-w-7xl mx-auto">
-            <div className="bg-black text-white rounded-2xl p-6 sm:p-8 mb-8 shadow-lg flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-left">
+        <div className="mx-auto max-w-7xl space-y-8">
+            <header className="flex flex-col gap-5 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-extrabold mb-2">Admin Dashboard</h1>
-                    <p className="text-gray-300">Manage events and manually confirm bookings.</p>
+                    <p className="mb-2 font-interface text-xs font-bold uppercase tracking-[0.15em] text-brand-navy">EventHub administration</p>
+                    <PageHeading>Admin dashboard</PageHeading>
+                    <p className="mt-2 text-text-secondary">Manage event listings and booking requests.</p>
                 </div>
-                <button
-                    onClick={() => { if (showEventForm) resetEventForm(); else { setEditingEventId(null); setShowEventForm(true); } }}
-                    className="w-full md:w-auto bg-white text-black font-bold py-3 px-6 rounded-lg hover:bg-gray-100 transition shadow-md"
-                >
-                    {showEventForm ? 'Cancel' : '+ Create New Event'}
-                </button>
-                <button onClick={() => navigate('/admin/staff')} className="w-full md:w-auto bg-gray-700 text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-600 transition shadow-md">
-                    Manage Event Staff
-                </button>
-            </div>
+                <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+                    <Button type="button" variant="primary" className="w-full sm:w-auto" onClick={() => { if (showEventForm) resetEventForm(); else { setEditingEventId(null); setShowEventForm(true); } }}>
+                        {showEventForm ? 'Cancel event form' : 'Create event'}
+                    </Button>
+                    <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => navigate('/admin/staff')}>Manage event staff</Button>
+                </div>
+            </header>
 
-            {eventNotice && <p role={eventNoticeError ? 'alert' : 'status'} className={`mb-5 rounded-lg p-4 ${eventNoticeError ? 'bg-red-50 text-red-800' : 'bg-blue-50 text-blue-800'}`}>{eventNotice}</p>}
+            {eventNotice && <Feedback tone={eventNoticeError ? 'error' : 'success'}>{eventNotice}</Feedback>}
 
-            {/* Admin Stats Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
-                    <div>
-                        <p className="text-gray-500 text-sm font-bold uppercase tracking-wider mb-1">Admin-Recorded Paid Total</p>
-                        <h3 className="text-3xl font-black text-green-600">{bookingsLoading || bookingsError ? '—' : `₹${bookings.reduce((sum, b) => b.paymentStatus === 'paid' && b.status === 'confirmed' ? sum + b.amount : sum, 0)}`}</h3>
+            <section aria-label="Admin overview" className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <Surface className="flex min-w-0 items-center justify-between gap-4 p-5">
+                    <div className="min-w-0">
+                        <p className="font-interface text-xs font-bold uppercase tracking-wide text-text-muted">Admin-recorded paid total</p>
+                        <p className="mt-2 text-2xl font-bold text-success">{bookingsLoading || bookingsError ? '—' : `₹${bookings.reduce((sum, b) => b.paymentStatus === 'paid' && b.status === 'confirmed' ? sum + b.amount : sum, 0)}`}</p>
                     </div>
-                    <div className="w-12 h-12 bg-green-100 text-green-500 rounded-full flex items-center justify-center text-xl font-bold">₹</div>
-                </div>
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
-                    <div>
-                        <p className="text-gray-500 text-sm font-bold uppercase tracking-wider mb-1">Paid Clients</p>
-                        <h3 className="text-3xl font-black text-blue-600">{bookingsLoading || bookingsError ? '—' : new Set(bookings.filter(b => b.paymentStatus === 'paid' && b.status === 'confirmed').map(b => b.userId?._id)).size}</h3>
+                    <span aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center bg-success-surface font-bold text-success">₹</span>
+                </Surface>
+                <Surface className="flex min-w-0 items-center justify-between gap-4 p-5">
+                    <div className="min-w-0">
+                        <p className="font-interface text-xs font-bold uppercase tracking-wide text-text-muted">Paid clients</p>
+                        <p className="mt-2 text-2xl font-bold text-info">{bookingsLoading || bookingsError ? '—' : new Set(bookings.filter(b => b.paymentStatus === 'paid' && b.status === 'confirmed').map(b => b.userId?._id)).size}</p>
                     </div>
-                    <div className="w-12 h-12 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center text-xl font-bold">👤</div>
-                </div>
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
-                    <div>
-                        <p className="text-gray-500 text-sm font-bold uppercase tracking-wider mb-1">Pending Requests</p>
-                        <h3 className="text-3xl font-black text-yellow-600">{bookingsLoading || bookingsError ? '—' : bookings.filter(b => b.status === 'pending').length}</h3>
+                    <span aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center bg-info-surface font-bold text-info">#</span>
+                </Surface>
+                <Surface className="flex min-w-0 items-center justify-between gap-4 p-5">
+                    <div className="min-w-0">
+                        <p className="font-interface text-xs font-bold uppercase tracking-wide text-text-muted">Pending requests</p>
+                        <p className="mt-2 text-2xl font-bold text-warning">{bookingsLoading || bookingsError ? '—' : bookings.filter(b => b.status === 'pending').length}</p>
                     </div>
-                    <div className="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center text-xl font-bold">⏳</div>
-                </div>
-            </div>
+                    <span aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center bg-warning-surface font-bold text-warning">…</span>
+                </Surface>
+            </section>
 
             {showEventForm && (
-                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mb-8 animation-slideDown">
-                    <h2 className="text-2xl font-bold mb-6 text-gray-800">{editingEventId ? 'Edit Event' : 'Create New Event'}</h2>
-                    <form onSubmit={handleSaveEvent} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <input required type="text" placeholder="Event Title" className="border px-4 py-3 rounded-lg focus:ring-2 focus:ring-gray-700 outline-none transition" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} />
-                        <input required type="text" placeholder="Category (e.g., Tech, Music)" className="border px-4 py-3 rounded-lg focus:ring-2 focus:ring-gray-700 outline-none transition" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} />
-                        <input required type="date" className="border px-4 py-3 rounded-lg focus:ring-2 focus:ring-gray-700 outline-none transition" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
-                        <input required type="text" placeholder="Location" className="border px-4 py-3 rounded-lg focus:ring-2 focus:ring-gray-700 outline-none transition" value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} />
-                        {!editingEventId && <input required type="number" placeholder="Total Seats" className="border px-4 py-3 rounded-lg focus:ring-2 focus:ring-gray-700 outline-none transition" value={formData.totalSeats} onChange={e => setFormData({ ...formData, totalSeats: e.target.value })} />}
-                        <input required type="number" placeholder="Ticket Price (0 for free)" className="border px-4 py-3 rounded-lg focus:ring-2 focus:ring-gray-700 outline-none transition" value={formData.ticketPrice} onChange={e => setFormData({ ...formData, ticketPrice: e.target.value })} />
-
-                        <div className="md:col-span-2">
-                            <input type="text" placeholder="Image URL (Provide any direct link to an image)" className="w-full border px-4 py-3 rounded-lg focus:ring-2 focus:ring-gray-700 outline-none transition" value={formData.image} onChange={e => setFormData({ ...formData, image: e.target.value })} />
+                <Surface as="section" aria-labelledby="event-form-heading" className="p-5 sm:p-7">
+                    <div className="mb-6 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <p className="mb-1 font-interface text-xs font-bold uppercase tracking-wide text-text-muted">Event management</p>
+                            <h2 id="event-form-heading" className="eh-section-title">{editingEventId ? 'Edit event' : 'Create event'}</h2>
                         </div>
-
-                        <textarea required placeholder="Event Description" className="border px-4 py-3 rounded-lg md:col-span-2 h-32 focus:ring-2 focus:ring-gray-700 outline-none transition" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
-                        <button type="submit" className="md:col-span-2 bg-gray-900 text-white font-bold py-3 mt-2 rounded-lg hover:bg-black transition shadow-md">{editingEventId ? 'Save Changes' : 'Publish Event'}</button>
-                        {editingEventId && <p className="md:col-span-2 text-sm text-gray-500">Seat capacity is not editable here.</p>}
+                        {editingEventId && <p className="text-sm text-text-secondary">Seat capacity is not editable here.</p>}
+                    </div>
+                    <form onSubmit={handleSaveEvent} className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                        <FormControl id="event-title" label="Event title" required type="text" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} />
+                        <FormControl id="event-category" label="Category" required type="text" placeholder="e.g., Tech, Music" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} />
+                        <FormControl id="event-date" label="Date" required type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
+                        <FormControl id="event-location" label="Location" required type="text" value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} />
+                        {!editingEventId && <FormControl id="event-total-seats" label="Total seats" required type="number" value={formData.totalSeats} onChange={e => setFormData({ ...formData, totalSeats: e.target.value })} />}
+                        <FormControl id="event-ticket-price" label="Ticket price (0 for free)" required type="number" value={formData.ticketPrice} onChange={e => setFormData({ ...formData, ticketPrice: e.target.value })} />
+                        <div className="md:col-span-2">
+                            <FormControl id="event-image" label="Image URL (optional)" type="text" helpText="Enter a direct link to an event image." value={formData.image} onChange={e => setFormData({ ...formData, image: e.target.value })} />
+                        </div>
+                        <div className="md:col-span-2">
+                            <FormControl as="textarea" id="event-description" label="Event description" required className="min-h-32" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+                        </div>
+                        <div className="flex flex-col gap-3 sm:flex-row md:col-span-2">
+                            <Button type="submit">{editingEventId ? 'Save changes' : 'Publish event'}</Button>
+                            <Button type="button" variant="outline" onClick={resetEventForm}>Cancel</Button>
+                        </div>
                     </form>
-                </div>
+                </Surface>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Events Section */}
-                <div className="flex flex-col">
-                    <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-3">
-                        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-600 text-sm">{events.length}</span>
-                        Events
-                    </h2>
-                    {eventsError && <p role="alert" className="mb-3 text-red-700">{eventsError} <button onClick={fetchData} className="font-bold underline">Retry</button></p>}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                        <ul className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
-                            {eventsLoading && events.length === 0 ? <li className="p-6 text-gray-500 text-center" role="status">Loading events...</li> : events.length === 0 && !eventsError ? <li className="p-6 text-gray-500 text-center">No events created yet.</li> :
+            {bookingNotice && <Feedback tone={bookingNoticeError ? 'error' : 'success'}>{bookingNotice}</Feedback>}
+
+            <div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
+                <section aria-labelledby="events-heading" className="min-w-0 space-y-4">
+                    <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-3">
+                        <div>
+                            <p className="mb-1 font-interface text-xs font-bold uppercase tracking-wide text-text-muted">Listings</p>
+                            <h2 id="events-heading" className="eh-section-title">Events <span className="text-base font-semibold text-text-muted">({events.length})</span></h2>
+                        </div>
+                        {eventsLoading && events.length > 0 && <span role="status" className="text-sm text-text-secondary">Refreshing…</span>}
+                    </div>
+                    {eventsError && <div className="space-y-3"><Feedback tone="error">{eventsError}</Feedback><Button type="button" variant="outline" onClick={fetchData}>Retry events</Button></div>}
+                    <Surface className="overflow-hidden p-0">
+                        <ul className="max-h-[700px] divide-y divide-border overflow-y-auto">
+                            {eventsLoading && events.length === 0 ? <li className="p-6"><Feedback tone="loading">Loading events…</Feedback></li> : events.length === 0 && !eventsError ? <li className="p-6"><Feedback tone="empty">No events created yet.</Feedback></li> :
                                 events.map(event => (
-                                    <li key={event._id} className="p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-gray-50 transition border-b border-gray-100 last:border-0">
-                                        <div>
-                                            <h4 className="font-bold text-gray-900 mb-1 leading-tight">{event.title}</h4>
-                                            <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
-                                                <span className="flex items-center gap-1 font-medium"><div className="w-2 h-2 rounded-full bg-blue-500"></div> {new Date(event.date).toLocaleDateString()}</span>
-                                                <span className="flex items-center gap-1 font-medium"><div className={`w-2 h-2 rounded-full ${event.availableSeats > 0 ? 'bg-green-500' : 'bg-red-500'}`}></div> {event.availableSeats}/{event.totalSeats} seats</span>
-                                                {event.isArchived && <span className="rounded-full bg-gray-200 px-2 py-1 text-xs font-bold text-gray-700">Archived</span>}
+                                    <li key={event._id} className="flex min-w-0 flex-col gap-4 p-5 transition-colors hover:bg-surface-muted sm:p-6">
+                                        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                            <div className="min-w-0">
+                                                <h3 className="break-words font-interface text-lg font-bold leading-snug text-text-primary">{event.title}</h3>
+                                                <dl className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-text-secondary">
+                                                    <div><dt className="sr-only">Date</dt><dd>{new Date(event.date).toLocaleDateString()}</dd></div>
+                                                    {event.category && <div><dt className="sr-only">Category</dt><dd>{event.category}</dd></div>}
+                                                    {event.location && <div className="break-words"><dt className="sr-only">Location</dt><dd>{event.location}</dd></div>}
+                                                </dl>
+                                            </div>
+                                            <div className="flex shrink-0 flex-wrap gap-2">
+                                                {event.isArchived && <span className="inline-flex min-h-8 items-center bg-surface-muted px-2 text-xs font-bold uppercase text-text-secondary">Archived</span>}
+                                                <span className={`inline-flex min-h-8 items-center px-2 text-xs font-bold ${event.availableSeats > 0 ? 'bg-success-surface text-success' : 'bg-error-surface text-error'}`}>{event.availableSeats}/{event.totalSeats} seats</span>
                                             </div>
                                         </div>
                                         <div className="flex flex-wrap gap-2">
                                             {event.isArchived ? <>
-                                                <button onClick={() => handleRestoreEvent(event)} className="border border-green-200 px-3 py-2 rounded-lg text-sm font-bold text-green-700">Restore</button>
-                                                <Link to={`/events/${event._id}`} className="border px-3 py-2 rounded-lg text-sm font-bold">View details</Link>
+                                                <Button type="button" variant="secondary" onClick={() => handleRestoreEvent(event)}>Restore</Button>
+                                                <Link to={`/events/${event._id}`} className="eh-button eh-button--outline">View details</Link>
                                             </> : <>
-                                                <button onClick={() => handleEditEvent(event)} className="border px-3 py-2 rounded-lg text-sm font-bold">Edit</button>
-                                                <button onClick={() => handleArchiveEvent(event)} className="border border-amber-200 px-3 py-2 rounded-lg text-sm font-bold text-amber-700">Archive</button>
+                                                <Button type="button" variant="outline" onClick={() => handleEditEvent(event)}>Edit</Button>
+                                                <Button type="button" variant="secondary" onClick={() => handleArchiveEvent(event)}>Archive</Button>
                                             </>}
-                                            <button onClick={() => handleDeleteEvent(event._id)} className="border border-red-200 px-3 py-2 rounded-lg text-sm font-bold text-red-600">Delete</button>
+                                            <Button type="button" variant="destructive" onClick={() => handleDeleteEvent(event._id)}>Delete</Button>
                                         </div>
                                     </li>
                                 ))
                             }
                         </ul>
-                    </div>
-                </div>
+                    </Surface>
+                </section>
 
-                {/* Bookings Section */}
-                <div className="flex flex-col">
-                    <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-3">
-                        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-yellow-100 text-yellow-700 text-sm font-bold">{bookings.length}</span>
-                        Booking Requests
-                    </h2>
-                    {bookingsError && <p role="alert" className="mb-3 text-red-700">{bookingsError} <button onClick={fetchData} className="font-bold underline">Retry</button></p>}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                        <ul className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
-                            {bookingsLoading && bookings.length === 0 ? <li className="p-6 text-gray-500 text-center" role="status">Loading bookings...</li> : bookings.length === 0 && !bookingsError ? <li className="p-6 text-gray-500 text-center">No bookings yet.</li> :
+                <section aria-labelledby="bookings-heading" className="min-w-0 space-y-4">
+                    <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-3">
+                        <div>
+                            <p className="mb-1 font-interface text-xs font-bold uppercase tracking-wide text-text-muted">Reservations</p>
+                            <h2 id="bookings-heading" className="eh-section-title">Booking requests <span className="text-base font-semibold text-text-muted">({bookings.length})</span></h2>
+                        </div>
+                        {bookingsLoading && bookings.length > 0 && <span role="status" className="text-sm text-text-secondary">Refreshing…</span>}
+                    </div>
+                    {bookingsError && <div className="space-y-3"><Feedback tone="error">{bookingsError}</Feedback><Button type="button" variant="outline" onClick={fetchData}>Retry bookings</Button></div>}
+                    <Surface className="overflow-hidden p-0">
+                        <ul className="max-h-[700px] divide-y divide-border overflow-y-auto">
+                            {bookingsLoading && bookings.length === 0 ? <li className="p-6"><Feedback tone="loading">Loading bookings…</Feedback></li> : bookings.length === 0 && !bookingsError ? <li className="p-6"><Feedback tone="empty">No bookings yet.</Feedback></li> :
                                 bookings.map(booking => (
-                                    <li key={booking._id} className={`p-6 hover:bg-gray-50 transition border-l-4 ${booking.status === 'pending' ? 'border-l-yellow-400' : booking.status === 'confirmed' ? 'border-l-green-400' : 'border-l-red-400'}`}>
-                                        <div className="flex justify-between items-start mb-3">
-                                            <h4 className="font-bold text-gray-900 text-lg leading-tight">{booking.eventTitle || booking.eventId?.title || 'Deleted Event'}</h4>
-                                            <div className="flex flex-col gap-1 items-end shrink-0 ml-4">
-                                                <span className={`px-2 py-1 text-[10px] font-black rounded uppercase tracking-wider ${booking.status === 'confirmed' ? 'bg-green-100 text-green-700' : booking.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>{booking.status}</span>
-                                                {booking.status !== 'cancelled' && <span className={`px-2 py-1 text-[10px] font-black rounded uppercase tracking-wider ${booking.paymentStatus === 'paid' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-200 text-gray-800'}`}>{booking.paymentStatus.replace('_', ' ')}</span>}
+                                    <li key={booking._id} className="min-w-0 p-5 sm:p-6">
+                                        <div className="mb-4 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                            <h3 className="min-w-0 break-words font-interface text-lg font-bold leading-snug text-text-primary">{booking.eventTitle || booking.eventId?.title || 'Deleted Event'}</h3>
+                                            <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
+                                                <span className={`inline-flex min-h-7 items-center px-2 text-xs font-bold uppercase tracking-wide ${booking.status === 'confirmed' ? 'bg-success-surface text-success' : booking.status === 'cancelled' ? 'bg-error-surface text-error' : 'bg-warning-surface text-warning'}`}>{booking.status}</span>
+                                                {booking.status !== 'cancelled' && <span className={`inline-flex min-h-7 items-center px-2 text-xs font-bold uppercase tracking-wide ${booking.paymentStatus === 'paid' ? 'bg-info-surface text-info' : 'bg-surface-muted text-text-secondary'}`}>{booking.paymentStatus.replace('_', ' ')}</span>}
                                             </div>
                                         </div>
-                                        <div className="bg-gray-50 rounded-lg p-3 mb-3 border border-gray-100 text-sm">
-                                            <p className="text-gray-700 flex items-center gap-2 mb-1">
-                                                <span className="font-bold w-16 text-gray-500 uppercase text-xs">User:</span>
-                                                <span className="font-semibold">{booking.userId?.name}</span>
-                                                <span className="text-gray-400">({booking.userId?.email})</span>
-                                            </p>
-                                            <p className="text-gray-700 flex items-center gap-2 mb-1">
-                                                <span className="font-bold w-16 text-gray-500 uppercase text-xs">Amount:</span>
-                                                <span className={`font-semibold ${booking.amount === 0 ? 'text-green-600' : ''}`}>{booking.amount === 0 ? 'Free' : `₹${booking.amount}`}</span>
-                                            </p>
-                                            <p className="text-gray-700 flex items-center gap-2 mb-1">
-                                                <span className="font-bold w-16 text-gray-500 uppercase text-xs">Date:</span>
-                                                <span>{new Date(booking.bookedAt).toLocaleString()}</span>
-                                            </p>
-                                            <p className="text-gray-700 flex items-center gap-2 mb-1">
-                                                <span className="font-bold w-16 text-gray-500 uppercase text-xs">Tickets:</span>
-                                                <span>{booking.quantity || 1}</span>
-                                            </p>
-                                            {(booking.attendees || []).length > 0 && (
-                                                <div className="mt-2 border-t border-gray-200 pt-2">
-                                                    <p className="font-bold text-xs uppercase text-gray-500 mb-1">Attendees</p>
-                                                    <ul className="space-y-1">
-                                                        {booking.attendees.map((attendee, index) => (
-                                                            <li key={`${booking._id}-attendee-${index}`} className="text-gray-700">
-                                                                {index + 1}. {attendee.name}{attendee.email ? ` · ${attendee.email}` : ''}
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-                                            )}
-                                            {booking.eventId && (
-                                                <p className="text-gray-700 flex items-center gap-2 mt-2 pt-2 border-t border-gray-200">
-                                                    <span className="font-bold w-16 text-gray-500 uppercase text-xs">Seats:</span>
-                                                    <span className={`font-bold ${booking.eventId.availableSeats > 0 ? 'text-green-600' : 'text-red-500'}`}>{booking.eventId.availableSeats}</span> remaining of {booking.eventId.totalSeats}
-                                                </p>
-                                            )}
-                                        </div>
 
-                                        {booking.status === 'confirmed' && booking.tickets?.length > 0 && (
-                                            <div className="mb-3 rounded-lg border border-green-100 bg-green-50 p-3 text-sm">
-                                                <p className="font-bold text-green-800 mb-1">Issued ticket references</p>
-                                                <ul className="space-y-1">
-                                                    {booking.tickets.map(ticket => <li key={ticket._id}>{ticket.attendee?.name}: <span className="font-mono">{ticket.ticketReference}</span></li>)}
+                                        <dl className="grid min-w-0 grid-cols-1 gap-x-4 gap-y-3 border-y border-border bg-surface-muted p-4 text-sm sm:grid-cols-2">
+                                            <div className="min-w-0"><dt className="font-semibold text-text-muted">User</dt><dd className="mt-1 break-words font-semibold text-text-primary">{booking.userId?.name}</dd><dd className="break-all text-text-secondary">{booking.userId?.email}</dd></div>
+                                            <div><dt className="font-semibold text-text-muted">Amount</dt><dd className="mt-1 font-semibold text-text-primary">{booking.amount === 0 ? 'Free' : `₹${booking.amount}`}</dd></div>
+                                            <div><dt className="font-semibold text-text-muted">Requested</dt><dd className="mt-1 text-text-primary">{new Date(booking.bookedAt).toLocaleString()}</dd></div>
+                                            <div><dt className="font-semibold text-text-muted">Tickets</dt><dd className="mt-1 text-text-primary">{booking.quantity || 1}</dd></div>
+                                            {booking.eventId && <div><dt className="font-semibold text-text-muted">Available seats</dt><dd className="mt-1 text-text-primary">{booking.eventId.availableSeats} remaining of {booking.eventId.totalSeats}</dd></div>}
+                                        </dl>
+
+                                        {(booking.attendees || []).length > 0 && (
+                                            <div className="mt-4">
+                                                <h4 className="mb-2 font-interface text-sm font-bold text-text-primary">Attendees</h4>
+                                                <ul className="space-y-1 text-sm text-text-secondary">
+                                                    {booking.attendees.map((attendee, index) => <li key={`${booking._id}-attendee-${index}`} className="break-words">{index + 1}. {attendee.name}{attendee.email ? ` · ${attendee.email}` : ''}</li>)}
                                                 </ul>
                                             </div>
                                         )}
 
-                                        {/* Action buttons for admin */}
+                                        {booking.status === 'confirmed' && booking.tickets?.length > 0 && (
+                                            <div className="mt-4 border-t border-border pt-4">
+                                                <h4 className="mb-2 font-interface text-sm font-bold text-text-primary">Issued ticket references</h4>
+                                                <ul className="space-y-2 text-sm">
+                                                    {booking.tickets.map(ticket => <li key={ticket._id} className="break-all text-text-secondary">{ticket.attendee?.name}: <span className="font-mono">{ticket.ticketReference}</span></li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+
                                         {booking.status === 'pending' && booking.amount > 0 && (
-                                            <div className="flex flex-wrap gap-2 mt-2">
-                                                <p className="w-full text-xs text-gray-500">Choose an admin-recorded status. Paid does not mean gateway verification.</p>
-                                                <button disabled={approvingBookingId === booking._id} title="Confirm and record as paid" onClick={() => handleConfirmBooking(booking._id, 'paid')} className="flex-1 min-w-[120px] bg-green-50 text-green-700 hover:bg-green-600 hover:text-white border border-green-200 text-xs font-bold py-2.5 px-3 rounded-lg shadow-sm transition disabled:opacity-50">
-                                                    Confirm + Mark Paid
-                                                </button>
-                                                <button disabled={approvingBookingId === booking._id} onClick={() => handleConfirmBooking(booking._id, 'not_paid')} className="flex-1 min-w-[145px] bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white border border-blue-200 text-xs font-bold py-2.5 px-3 rounded-lg shadow-sm transition disabled:opacity-50">
-                                                    Confirm + Mark Unpaid
-                                                </button>
-                                                <button onClick={() => handleCancelBooking(booking._id)} className="w-[80px] bg-red-50 text-red-600 hover:bg-red-500 hover:text-white border border-red-200 text-xs font-bold py-2.5 px-3 rounded-lg transition">
-                                                    Reject
-                                                </button>
+                                            <div className="mt-4 space-y-3 border-t border-border pt-4">
+                                                <Feedback tone="info" className="text-sm">Choose an admin-recorded status. Paid does not mean gateway verification.</Feedback>
+                                                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                                                    <Button type="button" variant="secondary" title="Confirm and record as paid" disabled={approvingBookingId === booking._id} onClick={() => handleConfirmBooking(booking._id, 'paid')}>Confirm + mark paid</Button>
+                                                    <Button type="button" variant="outline" disabled={approvingBookingId === booking._id} onClick={() => handleConfirmBooking(booking._id, 'not_paid')}>Confirm + mark unpaid</Button>
+                                                    <Button type="button" variant="destructive" disabled={cancellingBookingId === booking._id} loading={cancellingBookingId === booking._id} loadingText="Rejecting…" onClick={() => handleCancelBooking(booking._id)}>Reject</Button>
+                                                </div>
                                             </div>
                                         )}
                                     </li>
                                 ))
                             }
                         </ul>
-                    </div>
-                </div>
+                    </Surface>
+                </section>
             </div>
         </div>
     );

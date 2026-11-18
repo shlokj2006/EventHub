@@ -1,0 +1,59 @@
+@theme {
+  --color-brand-navy: #233a66;
+  --color-brand-gold-light: #ffd691;
+  --color-brand-gold-muted: #d7a859;
+  --color-brand-coral: #ff6e80;
+  --color-brand-white: #ffffff;
+
+  --color-page: #f8f7f4;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f1f2f4;
+  --color-text-primary: #202938;
+  --color-text-secondary: #465267;
+  --color-text-muted: #687386;
+  --color-border: #d8dde5;
+  --color-disabled: #e6e8ec;
+  --color-disabled-text: #687386;
+
+  --color-success: #176b45;
+  --color-success-surface: #e8f5ee;
+  --color-warning: #855400;
+  --color-warning-surface: #fff5dc;
+  --color-error: #a52a37;
+  --color-error-surface: #fff0f1;
+  --color-info: #24517e;
+  --color-info-surface: #edf5fc;
+
+  --font-display: "Bebas Neue", Impact, "Arial Narrow", sans-serif;
+  --font-interface: DIN, "DIN Next", "Arial Narrow", sans-serif;
+  --font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+
+  --radius-control: 0.625rem;
+  --radius-card: 1rem;
+  --radius-panel: 1.25rem;
+  --shadow-card: 0 1px 3px rgb(35 58 102 / 8%), 0 1px 2px rgb(35 58 102 / 5%);
+  --shadow-panel: 0 8px 24px rgb(35 58 102 / 10%);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --duration-fast: 150ms;
+  --duration-standard: 220ms;
+  --spacing-page-gutter: clamp(1rem, 4vw, 2rem);
+  --spacing-section: clamp(2rem, 5vw, 4rem);
+  --spacing-card: 1.25rem;
+
+  /* Reference viewport category starts; choose actual breakpoints per content. */
+  --breakpoint-mobile-standard: 23.4375rem;
+  --breakpoint-mobile-large: 26.9375rem;
+  --breakpoint-tablet: 48rem;
+  --breakpoint-laptop: 64rem;
+  --breakpoint-desktop: 80rem;
+  --breakpoint-wide: 100rem;
+}
+
+:root {
+  color-scheme: light;
+  --eh-content-width: 80rem;
+  --eh-reading-width: 46rem;
+  --eh-control-height: 2.75rem;
+  --eh-touch-target: 2.75rem;
+}
