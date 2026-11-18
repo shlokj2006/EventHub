@@ -167,15 +167,15 @@ Permissions are enforced on the backend rather than relying only on frontend nav
 
 | Category | Technologies |
 |---|---|
-| Frontend | React.js, Vite |
-| Styling | CSS |
-| Backend | Node.js, Express.js |
-| Database | MongoDB |
-| ODM | Mongoose |
-| Authentication | JSON Web Tokens (JWT) |
+| Frontend | React 19, Vite 8, React Router DOM 7 |
+| Styling | Tailwind CSS 4 and shared CSS tokens |
+| Backend | Node.js, Express 5 |
+| Database | MongoDB through Mongoose 9 |
+| Authentication | JSON Web Tokens (`jsonwebtoken`) |
 | Password Security | bcrypt |
-| API Communication | Axios |
-| Routing | React Router |
+| API Communication | Axios; Vite proxies `/api` to `http://localhost:5000` in development |
+| Browser QR scanning | `@zxing/browser` |
+| Icons | React Icons |
 | Email Services | Nodemailer |
 | OTP Generation | Node.js Crypto |
 | Security | Helmet, custom rate-limiting middleware |
@@ -190,78 +190,45 @@ Permissions are enforced on the backend rather than relying only on frontend nav
 
 EventHub follows a client-server architecture. The React frontend communicates with the Express backend through REST APIs, while MongoDB stores application data.
 
+The frontend has public, user, admin, and Event Staff layouts with role-aware
+navigation, reusable page controls, and shared design tokens. See
+[`docs/FRONTEND_DOCUMENTATION.md`](docs/FRONTEND_DOCUMENTATION.md) for its
+routes, access requirements, responsive behavior, and design system.
+
 ### Project Structure
 
 ```text
 EventHub/
-│
 ├── client/
 │   ├── src/
-│   │   ├── components/
-│   │   │   ├── Navbar.jsx
-│   │   │   └── TicketScanner.jsx
-│   │   │
-│   │   ├── context/
-│   │   │   └── AuthContext.jsx
-│   │   │
-│   │   ├── pages/
-│   │   │   ├── AdminDashboard.jsx
-│   │   │   ├── EventDetail.jsx
-│   │   │   ├── EventStaffDashboard.jsx
-│   │   │   ├── ForgotPassword.jsx
-│   │   │   ├── Home.jsx
-│   │   │   ├── Login.jsx
-│   │   │   ├── PaymentFailed.jsx
-│   │   │   ├── PaymentSuccess.jsx
-│   │   │   ├── Register.jsx
-│   │   │   ├── ResetPassword.jsx
-│   │   │   ├── StaffManagement.jsx
-│   │   │   └── UserDashboard.jsx
-│   │   │
-│   │   └── ...
-│   │
-│   ├── test/
+│   │   ├── components/  # Shared navigation, footer, scanner, and UI controls
+│   │   ├── context/     # Authentication context
+│   │   ├── layouts/     # Public, user, admin, and Event Staff layouts
+│   │   ├── pages/       # Route-level screens
+│   │   ├── styles/      # Theme tokens, typography, and component styles
+│   │   └── utils/       # API/session and feature helpers
+│   ├── test/            # Frontend utility tests
 │   ├── package.json
 │   └── vite.config.js
-│
 ├── server/
-│   ├── controllers/
-│   │   ├── authController.js
-│   │   ├── bookingController.js
-│   │   ├── eventController.js
-│   │   ├── eventStaffController.js
-│   │   └── ticketController.js
-│   │
-│   ├── middleware/
-│   │   ├── auth.js
-│   │   ├── authRateLimit.js
-│   │   ├── cronAuth.js
-│   │   └── passwordResetRateLimit.js
-│   │
-│   ├── models/
-│   │   ├── Booking.js
-│   │   ├── Event.js
-│   │   ├── EventStaffAssignment.js
-│   │   ├── PasswordReset.js
-│   │   ├── Ticket.js
-│   │   └── User.js
-│   │
-│   ├── routes/
-│   ├── scripts/
-│   ├── services/
-│   ├── test/
+│   ├── controllers/  # Request handlers
+│   ├── middleware/   # Authentication, authorization, and request controls
+│   ├── models/       # Mongoose models
+│   ├── routes/       # API route registration
+│   ├── scripts/      # Server maintenance scripts
+│   ├── services/     # Booking, ticket, and email workflows
+│   ├── test/         # Backend tests
 │   ├── utils/
 │   ├── index.js
 │   └── package.json
-│
 ├── docs/
 │   ├── API_CONTRACT.md
+│   ├── FRONTEND_DOCUMENTATION.md
 │   ├── ARCHITECTURE_AND_STRUCTURE.md
 │   ├── DATABASE_DESIGN.md
 │   ├── DATABASE_SCHEMA.md
 │   ├── DEPLOYMENT.md
 │   └── RESERVATION_POLICY.md
-│
 └── README.md
 ```
 
@@ -377,8 +344,6 @@ The ticketing system supports:
 
 ## Installation and Setup
 
-Follow these steps to run EventHub locally.
-
 ### Prerequisites
 
 Make sure the following are installed:
@@ -395,31 +360,29 @@ git clone https://github.com/shlokj2006/EventHub.git
 cd EventHub
 ```
 
-### 2. Configure the Backend
+### Configure the backend
+
+Create `server/.env` using `server/.env.example` as a reference. Keep
+credentials local and do not commit environment files.
+
+Configure the required backend environment variables before starting the
+server. The frontend does not require an environment file for local
+development: Vite proxies `/api` to `http://localhost:5000`. If using another
+API origin, set `VITE_API_URL` to its API base ending in `/api`. Do not put
+secrets in `VITE_*` variables; frontend build-time values are public.
+
+### Install and run
+
+From the repository root, install dependencies and start the API and Vite
+development server:
 
 ```bash
-cd server
-npm install
+npm run install:all
+npm run dev
 ```
 
-Create a `.env` file inside the `server` directory using the available `.env.example` file as a reference.
-
-Configure the required backend environment variables before starting the server.
-
-### 3. Configure the Frontend
-
-Open another terminal:
-
-```bash
-cd client
-npm install
-```
-
-Create the frontend `.env` file if required, using the available frontend example configuration.
-
-### 4. Start the Application
-
-Start the backend and frontend separately using the commands below.
+For separate terminals, use `npm run dev:server` and `npm run dev:client` from
+the root, or run `npm run dev` inside `server/` and `client/` respectively.
 
 ---
 
@@ -445,30 +408,7 @@ Start the backend and frontend separately using the commands below.
 
 | Variable | Description |
 |---|---|
-| `VITE_API_URL` | Optional backend API base URL; defaults to `/api` |
-
-### Example Backend Configuration
-
-```env
-MONGODB_URI=your_mongodb_connection_string
-JWT_SECRET=your_secure_jwt_secret
-
-FRONTEND_URL=http://localhost:5173
-
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_email_app_password
-
-CRON_SECRET=your_cron_secret
-
-PORT=5000
-NODE_ENV=development
-```
-
-### Example Frontend Configuration
-
-```env
-VITE_API_URL=http://localhost:5000/api
-```
+| `VITE_API_URL` | Optional API base URL ending in `/api`; defaults to relative `/api` |
 
 **Important:** Never commit `.env` files, database credentials, email passwords, JWT secrets, or other private configuration values to GitHub.
 
@@ -501,6 +441,12 @@ http://localhost:5173
 ```
 
 The frontend communicates with the backend through the configured API base URL.
+
+From the root, `npm run build` builds the frontend and `npm run lint` runs its
+ESLint script. `npm test --prefix server` runs backend tests; from `client/`,
+run `node --test` for frontend utility tests. The client has no npm `test`
+script. See [`docs/FRONTEND_DOCUMENTATION.md`](docs/FRONTEND_DOCUMENTATION.md)
+for frontend routes and access rules.
 
 ---
 
@@ -631,6 +577,7 @@ Additional technical documentation is available in the `docs/` directory:
 | Document | Purpose |
 |---|---|
 | `API_CONTRACT.md` | API endpoint and request/response documentation |
+| `FRONTEND_DOCUMENTATION.md` | Frontend architecture, layouts, routes, design system, and integration |
 | `ARCHITECTURE_AND_STRUCTURE.md` | Application architecture and folder organization |
 | `DATABASE_DESIGN.md` | Database design decisions |
 | `DATABASE_SCHEMA.md` | Database schema details |

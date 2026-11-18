@@ -15,6 +15,9 @@ release-approved.
 - Event Staff designation and event assignment.
 - Idempotent ticket issuance, ticket PDF/QR generation, private downloads,
   scanner UI, and server-side check-in.
+- Frontend redesign with shared role-specific layouts, navigation, footer,
+  informational pages, and responsive design tokens; see
+  [`FRONTEND_DOCUMENTATION.md`](FRONTEND_DOCUMENTATION.md).
 - OTP, password reset, and confirmed-booking email flows.
 - Backend/client utility tests and client build/lint scripts.
 
@@ -38,7 +41,6 @@ not known from repository files.
 
 ## Deferred next version
 
-- Full-site UX redesign and consistency pass.
 - Real online payment gateway integration.
 - Provider-verified payment status, webhook handling, and payment
   reconciliation.
